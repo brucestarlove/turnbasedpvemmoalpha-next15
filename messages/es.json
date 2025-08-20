@@ -1,0 +1,8 @@
+{
+  "home": {
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "subtitle": "Una plantilla de inicio de Next.js, repleta de funciones como TypeScript, Tailwind CSS, Next-auth, Eslint, Stripe, herramientas de prueba y más. Inicia tu proyecto con eficiencia y estilo.",
+    "getStartedButton": "Comenzar"
+  }
+}
