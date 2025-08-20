@@ -17,6 +17,7 @@ export const AuthControls = ({ session }: AuthControlsProps) => {
   if (!session)
     return (
       <Button
+        variant="starlight"
         className="cursor-pointer"
         onClick={async () => await signIn("github")}
       >
@@ -29,13 +30,17 @@ export const AuthControls = ({ session }: AuthControlsProps) => {
   return (
     <>
       <Image
-        className="overflow-hidden rounded-full"
+        className="border-primary/20 overflow-hidden rounded-full border-2"
         src={`${user?.image}`}
         alt={`${user?.name}`}
         width={32}
         height={32}
       />
-      <Button className="cursor-pointer" onClick={async () => await signOut()}>
+      <Button
+        variant="glass"
+        className="cursor-pointer"
+        onClick={async () => await signOut()}
+      >
         {t("signOut")}
       </Button>
     </>

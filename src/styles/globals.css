@@ -43,71 +43,81 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  
+  /* Starscape Brand Colors */
+  --starscape-indigo: #5c5ced;
+  --starscape-cyan: #22f2ff;
+  --starscape-rose: #ff74b3;
+  --starscape-deep: #0c0c1c;
+  --starscape-glass: rgba(255, 255, 255, 0.08);
+  
+  /* Light Theme - Starscape Inspired */
+  --background: #ffffff;
+  --foreground: #0c0c1c;
+  --card: #ffffff;
+  --card-foreground: #0c0c1c;
+  --popover: #ffffff;
+  --popover-foreground: #0c0c1c;
+  --primary: #5c5ced;
+  --primary-foreground: #ffffff;
+  --secondary: #f8f9ff;
+  --secondary-foreground: #5c5ced;
+  --muted: #f1f3ff;
+  --muted-foreground: #6b7280;
+  --accent: #e0e7ff;
+  --accent-foreground: #5c5ced;
+  --destructive: #ef4444;
+  --border: #e5e7eb;
+  --input: #ffffff;
+  --ring: #5c5ced;
+  --chart-1: #5c5ced;
+  --chart-2: #22f2ff;
+  --chart-3: #ff74b3;
+  --chart-4: #8b5cf6;
+  --chart-5: #06b6d4;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0c0c1c;
+  --sidebar-primary: #5c5ced;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f8f9ff;
+  --sidebar-accent-foreground: #5c5ced;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #5c5ced;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark Theme - Starscape Deep Space */
+  --background: #0c0c1c;
+  --foreground: #ffffff;
+  --card: rgba(255, 255, 255, 0.06);
+  --card-foreground: #ffffff;
+  --popover: rgba(255, 255, 255, 0.06);
+  --popover-foreground: #ffffff;
+  --primary: #5c5ced;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(255, 255, 255, 0.08);
+  --secondary-foreground: #ffffff;
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: #aaa;
+  --accent: rgba(255, 255, 255, 0.08);
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #5c5ced;
+  --chart-1: #5c5ced;
+  --chart-2: #22f2ff;
+  --chart-3: #ff74b3;
+  --chart-4: #8b5cf6;
+  --chart-5: #06b6d4;
+  --sidebar: rgba(255, 255, 255, 0.06);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #5c5ced;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: #5c5ced;
 }
 
 @layer base {
@@ -116,9 +126,99 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: 
+      radial-gradient(circle at 20% 80%, rgba(92, 92, 237, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(34, 242, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(255, 116, 179, 0.05) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+  
+  /* Starfield effect for dark mode */
+  .dark body {
+    background-image: 
+      radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+      radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+      radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+      radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.6), transparent),
+      radial-gradient(2px 2px at 160px 30px, #ddd, transparent),
+      radial-gradient(circle at 20% 80%, rgba(92, 92, 237, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(34, 242, 255, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(255, 116, 179, 0.1) 0%, transparent 50%);
+    background-repeat: repeat;
+    background-size: 200px 100px, 200px 100px, 200px 100px, 200px 100px, 200px 100px, 100% 100%, 100% 100%, 100% 100%;
+    animation: sparkle 20s linear infinite;
+  }
+  
+  @keyframes sparkle {
+    0% { background-position: 0px 0px, 0px 0px, 0px 0px, 0px 0px, 0px 0px, 0% 0%, 0% 0%, 0% 0%; }
+    100% { background-position: 200px 100px, -200px 100px, 200px -100px, -200px -100px, 200px 100px, 0% 0%, 0% 0%, 0% 0%; }
   }
 }
 
 @utility container {
   @apply max-w-screen-xl mx-auto p-5;
+}
+
+@layer utilities {
+  /* Starscape Gradients */
+  .bg-starlight {
+    background: linear-gradient(135deg, #5c5ced 0%, #22f2ff 100%);
+  }
+  
+  .bg-cosmic-bloom {
+    background: linear-gradient(135deg, #5c5ced 0%, #ff74b3 100%);
+  }
+  
+  .bg-starscape-glass {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  
+  .bg-starscape-glass-light {
+    backdrop-filter: blur(20px);
+    background: rgba(92, 92, 237, 0.06);
+    border: 1px solid rgba(92, 92, 237, 0.12);
+  }
+  
+  /* Text Gradients */
+  .text-starlight {
+    background: linear-gradient(135deg, #5c5ced 0%, #22f2ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .text-cosmic-bloom {
+    background: linear-gradient(135deg, #5c5ced 0%, #ff74b3 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Glow Effects */
+  .glow-starscape {
+    box-shadow: 0 0 20px rgba(92, 92, 237, 0.3);
+  }
+  
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(34, 242, 255, 0.3);
+  }
+  
+  .glow-rose {
+    box-shadow: 0 0 20px rgba(255, 116, 179, 0.3);
+  }
+  
+  /* Hover Effects */
+  .hover-glow-starscape:hover {
+    box-shadow: 0 0 30px rgba(92, 92, 237, 0.4);
+  }
+  
+  .hover-glow-cyan:hover {
+    box-shadow: 0 0 30px rgba(34, 242, 255, 0.4);
+  }
+  
+  .hover-glow-rose:hover {
+    box-shadow: 0 0 30px rgba(255, 116, 179, 0.4);
+  }
 }

@@ -15,7 +15,7 @@ export const LangSwitcher = ({ className }: LangSwitcherProps) => {
   return (
     <Link
       className={cn(
-        buttonVariants({ variant: "outline", size: "icon" }),
+        buttonVariants({ variant: "glass", size: "icon" }),
         className,
       )}
       href={locale === "en" ? "/es" : "/en"}

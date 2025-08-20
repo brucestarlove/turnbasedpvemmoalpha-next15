@@ -7,5 +7,7 @@ export const ThemeProvider = ({
   children,
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) => (
-  <NextThemesProvider {...props}>{children}</NextThemesProvider>
+  <NextThemesProvider defaultTheme="dark" {...props}>
+    {children}
+  </NextThemesProvider>
 );

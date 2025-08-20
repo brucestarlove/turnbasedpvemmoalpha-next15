@@ -18,6 +18,7 @@ export const ThemeSwitcher = ({ className }: ThemeSwitcherProps) => {
     <Button
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
       className={cn("cursor-pointer", className)}
+      variant="glass"
       size="icon"
       aria-label="Toggle theme"
     >

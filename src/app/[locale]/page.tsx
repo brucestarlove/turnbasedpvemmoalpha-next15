@@ -13,10 +13,10 @@ const HomePage = async () => {
 
   return (
     <>
-      <header className="w-full border-b">
+      <header className="border-border/40 bg-background/80 w-full border-b backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between">
-          <Link href="#" className="font-mono text-lg font-bold">
-            next-starter
+          <Link href="#" className="text-starlight font-mono text-lg font-bold">
+            Starscape
           </Link>
           <div className="flex items-center gap-2">
             <AuthControls session={session} />
@@ -25,10 +25,7 @@ const HomePage = async () => {
       </header>
       <section className="container mt-10 flex flex-col items-center gap-3 text-center md:absolute md:top-1/2 md:left-1/2 md:mt-0 md:-translate-x-1/2 md:-translate-y-1/2">
         <h1 className="mb-1 font-mono text-4xl leading-tight font-extrabold tracking-tighter [word-spacing:-0.5rem] md:text-5xl">
-          <span className="bg-gradient-to-r from-rose-700 to-pink-600 bg-clip-text text-transparent">
-            Turn-based PvE MMO
-          </span>{" "}
-          alpha
+          <span className="text-starlight">Starscape</span> starter template
         </h1>
         <p className="text-muted-foreground max-w-2xl md:text-lg">
           {t("subtitle")}
@@ -40,7 +37,7 @@ const HomePage = async () => {
             <Link
               href=""
               target="_blank"
-              className={buttonVariants({ size: "lg" })}
+              className={buttonVariants({ variant: "starlight", size: "lg" })}
             >
               {t("playButton")}
             </Link>
@@ -48,7 +45,7 @@ const HomePage = async () => {
           <Link
             href=""
             target="_blank"
-            className={buttonVariants({ variant: "outline", size: "lg" })}
+            className={buttonVariants({ variant: "glass", size: "lg" })}
           >
             <Icons.info /> {t("aboutButton")}
           </Link>
@@ -58,7 +55,10 @@ const HomePage = async () => {
         © {new Date().getFullYear()}{" "}
         <Link
           href="starlove.world"
-          className={buttonVariants({ variant: "link", className: "!p-0" })}
+          className={buttonVariants({
+            variant: "link",
+            className: "text-starlight hover:text-cosmic-bloom !p-0",
+          })}
         >
           Starlove
         </Link>

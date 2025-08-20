@@ -20,6 +20,14 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
+        starlight:
+          "bg-starlight text-white shadow-xs hover:bg-starlight/90 glow-starscape hover-glow-starscape",
+        cosmic:
+          "bg-cosmic-bloom text-white shadow-xs hover:bg-cosmic-bloom/90 glow-rose hover-glow-rose",
+        glass:
+          "bg-starscape-glass text-white shadow-xs hover:bg-starscape-glass/80 border border-white/20",
+        glassLight:
+          "bg-starscape-glass-light text-primary shadow-xs hover:bg-starscape-glass-light/80 border border-primary/20",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
