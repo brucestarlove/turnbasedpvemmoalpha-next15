@@ -26,9 +26,9 @@ const HomePage = async () => {
       <section className="container mt-10 flex flex-col items-center gap-3 text-center md:absolute md:top-1/2 md:left-1/2 md:mt-0 md:-translate-x-1/2 md:-translate-y-1/2">
         <h1 className="mb-1 font-mono text-4xl leading-tight font-extrabold tracking-tighter [word-spacing:-0.5rem] md:text-5xl">
           <span className="bg-gradient-to-r from-rose-700 to-pink-600 bg-clip-text text-transparent">
-            Next.js
+            Turn-based PvE MMO
           </span>{" "}
-          starter template
+          alpha
         </h1>
         <p className="text-muted-foreground max-w-2xl md:text-lg">
           {t("subtitle")}
@@ -38,19 +38,19 @@ const HomePage = async () => {
             <StripeButton />
           ) : (
             <Link
-              href="https://github.com/Skolaczk/next-starter/blob/main/README.md#getting-started"
+              href=""
               target="_blank"
               className={buttonVariants({ size: "lg" })}
             >
-              {t("getStartedButton")}
+              {t("playButton")}
             </Link>
           )}
           <Link
-            href="https://github.com/Skolaczk/next-starter"
+            href=""
             target="_blank"
             className={buttonVariants({ variant: "outline", size: "lg" })}
           >
-            <Icons.github /> Github
+            <Icons.info /> {t("aboutButton")}
           </Link>
         </div>
       </section>
@@ -62,7 +62,6 @@ const HomePage = async () => {
         >
           Starlove
         </Link>
-        <p>inspired by Michal Skolak</p>
       </footer>
     </>
   );
