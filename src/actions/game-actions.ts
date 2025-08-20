@@ -110,7 +110,11 @@ export async function getTownData() {
 }
 
 // Start a mission
-export async function startMission(userId: string, missionId: string) {
+export async function startMission(
+  userId: string,
+  missionId: string,
+  combatSkill?: string,
+) {
   try {
     const player = await db.query.players.findFirst({
       where: eq(players.id, userId),
@@ -131,9 +135,14 @@ export async function startMission(userId: string, missionId: string) {
       return { success: false, error: "Already on a mission" };
     }
 
-    const mission = ALL_MISSIONS_POOL[missionId];
+    let mission = ALL_MISSIONS_POOL[missionId];
     if (!mission) {
       return { success: false, error: "Mission not found" };
+    }
+
+    // For combat missions, use the selected skill
+    if (mission.type === "combat" && combatSkill) {
+      mission = { ...mission, skill: combatSkill };
     }
 
     // Update player with new mission
@@ -289,6 +298,27 @@ export async function resolveMission(userId: string) {
       }
     }
 
+    // Unlock combat missions after first mission completion
+    if (isSuccessfulAction && (currentPlayer.missionsCompleted || 0) === 0) {
+      const town = await db.query.towns.findFirst();
+      if (town && !(town.unlockedMissions || []).includes("m103")) {
+        const newUnlockedMissions = [...(town.unlockedMissions || []), "m103"];
+
+        await db
+          .update(towns)
+          .set({ unlockedMissions: newUnlockedMissions })
+          .where(eq(towns.id, town.id));
+
+        // Add log entry
+        await db.insert(gameLogs).values({
+          playerId: "system",
+          message:
+            "🐺 A dangerous wolf has been spotted nearby! The Combat Mission Board is now available.",
+          type: "system",
+        });
+      }
+    }
+
     // Add log entry
     await db.insert(gameLogs).values({
       playerId: userId,
@@ -386,12 +416,15 @@ export async function contributeToTown(
 // Get game logs for a player
 export async function getGameLogs(userId: string, limit = 30) {
   try {
+    const { or } = await import("drizzle-orm");
+
     const logs = await db.query.gameLogs.findMany({
-      where: eq(gameLogs.playerId, userId),
+      where: or(eq(gameLogs.playerId, userId), eq(gameLogs.playerId, "system")),
       orderBy: (gameLogs, { desc }) => [desc(gameLogs.timestamp)],
       limit,
     });
 
+    // Keep newest first, oldest last
     return { success: true, data: logs };
   } catch (error) {
     console.error("Failed to get game logs:", error);

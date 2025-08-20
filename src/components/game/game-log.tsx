@@ -32,7 +32,7 @@ export const GameLogPanel = ({ userId }: GameLogPanelProps) => {
           ) {
             setTimeout(() => {
               scrollRef.current?.scrollTo({
-                top: scrollRef.current.scrollHeight,
+                top: 0,
                 behavior: "smooth",
               });
             }, 100);
@@ -57,15 +57,15 @@ export const GameLogPanel = ({ userId }: GameLogPanelProps) => {
 
   const handleScroll = () => {
     if (scrollRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
-      setAutoScroll(isAtBottom);
+      const { scrollTop } = scrollRef.current;
+      const isAtTop = scrollTop <= 10;
+      setAutoScroll(isAtTop);
     }
   };
 
-  const scrollToBottom = () => {
+  const scrollToTop = () => {
     scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
+      top: 0,
       behavior: "smooth",
     });
     setAutoScroll(true);
@@ -93,11 +93,19 @@ export const GameLogPanel = ({ userId }: GameLogPanelProps) => {
 
   const getLogTypeColor = (message: string) => {
     if (
+      message.includes("🎉") ||
       message.includes("completed") ||
       message.includes("earned") ||
       message.includes("gained")
     ) {
       return "text-green-400";
+    }
+    if (
+      message.includes("🔓") ||
+      message.includes("Unlocked") ||
+      message.includes("unlocked")
+    ) {
+      return "text-purple-400";
     }
     if (message.includes("started") || message.includes("began")) {
       return "text-blue-400";
@@ -112,8 +120,19 @@ export const GameLogPanel = ({ userId }: GameLogPanelProps) => {
   };
 
   const getLogIcon = (message: string) => {
-    if (message.includes("completed") || message.includes("earned")) {
+    if (
+      message.includes("🎉") ||
+      message.includes("completed") ||
+      message.includes("earned")
+    ) {
       return <Icons.check className="h-3 w-3 text-green-400" />;
+    }
+    if (
+      message.includes("🔓") ||
+      message.includes("Unlocked") ||
+      message.includes("unlocked")
+    ) {
+      return <Icons.star className="h-3 w-3 text-purple-400" />;
     }
     if (message.includes("started") || message.includes("began")) {
       return <Icons.play className="h-3 w-3 text-blue-400" />;
@@ -134,7 +153,7 @@ export const GameLogPanel = ({ userId }: GameLogPanelProps) => {
           <Icons.clipboard className="h-5 w-5" />
           Activity Log
         </h2>
-        <div className="flex h-48 items-center justify-center">
+        <div className="flex h-96 items-center justify-center">
           <Icons.loading className="text-starlight h-6 w-6 animate-spin" />
         </div>
       </div>
@@ -151,10 +170,10 @@ export const GameLogPanel = ({ userId }: GameLogPanelProps) => {
         <div className="flex items-center gap-2">
           {!autoScroll && (
             <button
-              onClick={scrollToBottom}
+              onClick={scrollToTop}
               className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
             >
-              <Icons.arrowLeft className="h-3 w-3 rotate-[-90deg]" />
+              <Icons.arrowLeft className="h-3 w-3 rotate-[90deg]" />
               New
             </button>
           )}
@@ -167,7 +186,7 @@ export const GameLogPanel = ({ userId }: GameLogPanelProps) => {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="h-48 space-y-2 overflow-y-auto pr-2"
+        className="h-96 space-y-2 overflow-y-auto pr-2"
         style={{ scrollbarWidth: "thin" }}
       >
         {logs.length > 0 ? (

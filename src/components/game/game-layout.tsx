@@ -8,6 +8,7 @@ import { ActionPanel } from "@/components/game/action-panel";
 import { CooldownTimer } from "@/components/game/cooldown-timer";
 import { GameLogPanel } from "@/components/game/game-log";
 import { PlayerPanel } from "@/components/game/player-panel";
+import { SkillsPanel } from "@/components/game/skills-panel";
 import { TownPanel } from "@/components/game/town-panel";
 import { Icons } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
@@ -223,20 +224,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             )}
 
             {activeLeftPane === "skills" && (
-              <div className="bg-card/50 rounded-lg border p-4 shadow-lg backdrop-blur-sm">
-                <h2 className="border-border mb-2 border-b pb-2 text-xl font-bold">
-                  Professions
-                </h2>
-                <div className="space-y-1 text-sm">
-                  {playerData?.skills &&
-                    Object.entries(playerData.skills).map(([skill, data]) => (
-                      <p key={skill}>
-                        <strong className="capitalize">{skill}:</strong>{" "}
-                        {data.level} ({data.xp} xp)
-                      </p>
-                    ))}
-                </div>
-              </div>
+              <SkillsPanel playerData={playerData} />
             )}
 
             {activeLeftPane === "inventory" && (
@@ -267,7 +255,11 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             )}
 
             {/* Town Panel */}
-            <TownPanel townData={townData} userId={userId} />
+            <TownPanel
+              townData={townData}
+              playerData={playerData}
+              userId={userId}
+            />
           </div>
 
           {/* Right Column: Actions, Missions, Logs */}

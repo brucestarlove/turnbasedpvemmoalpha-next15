@@ -6,14 +6,15 @@ import { contributeToTown } from "@/actions/game-actions";
 import { Icons } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentObjective } from "@/lib/game-config";
-import type { Town } from "@/lib/schema";
+import type { Player, Town } from "@/lib/schema";
 
 type TownPanelProps = {
   townData: Town | null;
+  playerData: Player | null;
   userId: string;
 };
 
-export const TownPanel = ({ townData, userId }: TownPanelProps) => {
+export const TownPanel = ({ townData, playerData, userId }: TownPanelProps) => {
   const [resourceName, setResourceName] = useState("");
   const [resourceAmount, setResourceAmount] = useState("");
   const [isContributing, setIsContributing] = useState(false);
@@ -37,11 +38,17 @@ export const TownPanel = ({ townData, userId }: TownPanelProps) => {
     townData.completedObjectives || [],
   );
 
+  const availableItems = playerData?.inventory
+    ? Object.entries(playerData.inventory).filter(
+        ([, quantity]) => quantity > 0,
+      )
+    : [];
+
   const handleContribute = async () => {
     setError(null);
 
-    if (!resourceName.trim()) {
-      setError("Please enter a resource name");
+    if (!resourceName) {
+      setError("Please select a resource");
       return;
     }
 
@@ -61,13 +68,17 @@ export const TownPanel = ({ townData, userId }: TownPanelProps) => {
       return;
     }
 
+    const availableAmount = playerData?.inventory?.[resourceName] || 0;
+    if (amount > availableAmount) {
+      setError(
+        `You only have ${availableAmount} ${resourceName.replace(/_/g, " ")}`,
+      );
+      return;
+    }
+
     setIsContributing(true);
     try {
-      const result = await contributeToTown(
-        userId,
-        resourceName.toLowerCase().replace(/\s+/g, "_"),
-        amount,
-      );
+      const result = await contributeToTown(userId, resourceName, amount);
       if (result.success) {
         setResourceName("");
         setResourceAmount("");
@@ -278,48 +289,73 @@ export const TownPanel = ({ townData, userId }: TownPanelProps) => {
             </div>
           )}
 
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={resourceName}
-              onChange={(e) => setResourceName(e.target.value)}
-              placeholder="Resource name (e.g., sturdy wood)"
-              className="bg-background/50 border-border focus:ring-starlight/50 focus:border-starlight w-full rounded-md border px-3 py-2 text-sm transition-colors focus:ring-2"
-              disabled={isContributing}
-            />
-            <input
-              type="number"
-              value={resourceAmount}
-              onChange={(e) => setResourceAmount(e.target.value)}
-              placeholder="Amount"
-              min="1"
-              className="bg-background/50 border-border focus:ring-starlight/50 focus:border-starlight w-full rounded-md border px-3 py-2 text-sm transition-colors focus:ring-2"
-              disabled={isContributing}
-            />
-            <button
-              onClick={handleContribute}
-              disabled={
-                isContributing || !resourceName.trim() || !resourceAmount.trim()
-              }
-              className={buttonVariants({
-                variant: "starlight",
-                size: "sm",
-                className: "w-full",
-              })}
-            >
-              {isContributing ? (
-                <div className="flex items-center gap-2">
-                  <Icons.loading className="h-4 w-4 animate-spin" />
-                  Contributing...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Icons.gift className="h-4 w-4" />
-                  Contribute
-                </div>
+          {availableItems.length > 0 ? (
+            <div className="space-y-3">
+              <select
+                value={resourceName}
+                onChange={(e) => setResourceName(e.target.value)}
+                className="bg-background/50 border-border focus:ring-starlight/50 focus:border-starlight w-full rounded-md border px-3 py-2 text-sm transition-colors focus:ring-2"
+                disabled={isContributing}
+              >
+                <option value="">Select a resource to contribute</option>
+                {availableItems.map(([item, quantity]) => (
+                  <option key={item} value={item}>
+                    {item
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (l) => l.toUpperCase())}{" "}
+                    ({quantity} available)
+                  </option>
+                ))}
+              </select>
+
+              {resourceName && (
+                <input
+                  type="number"
+                  value={resourceAmount}
+                  onChange={(e) => setResourceAmount(e.target.value)}
+                  placeholder="Amount"
+                  min="1"
+                  max={playerData?.inventory?.[resourceName] || 0}
+                  className="bg-background/50 border-border focus:ring-starlight/50 focus:border-starlight w-full rounded-md border px-3 py-2 text-sm transition-colors focus:ring-2"
+                  disabled={isContributing}
+                />
               )}
-            </button>
-          </div>
+
+              <button
+                onClick={handleContribute}
+                disabled={
+                  isContributing || !resourceName || !resourceAmount.trim()
+                }
+                className={buttonVariants({
+                  variant: "starlight",
+                  size: "sm",
+                  className: "w-full",
+                })}
+              >
+                {isContributing ? (
+                  <div className="flex items-center gap-2">
+                    <Icons.loading className="h-4 w-4 animate-spin" />
+                    Contributing...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Icons.gift className="h-4 w-4" />
+                    Contribute
+                  </div>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="py-4 text-center">
+              <Icons.package className="mx-auto mb-2 h-8 w-8 opacity-50" />
+              <p className="text-muted-foreground text-sm">
+                No items available to contribute
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Complete missions to gather resources
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

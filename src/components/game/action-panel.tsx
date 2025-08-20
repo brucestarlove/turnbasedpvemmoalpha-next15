@@ -28,12 +28,20 @@ export const ActionPanel = ({
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [selectedCombatSkills, setSelectedCombatSkills] = useState<
+    Record<string, string>
+  >({});
 
-  const handleStartMission = async (missionId: string) => {
+  const combatSkills = ["unarmed", "weapons", "archery", "traps"];
+
+  const handleStartMission = async (
+    missionId: string,
+    combatSkill?: string,
+  ) => {
     setError(null);
     setIsStartingMission(missionId);
     try {
-      const result = await startMission(userId, missionId);
+      const result = await startMission(userId, missionId, combatSkill);
       if (!result.success) {
         setError(result.error || "Failed to start mission");
       }
@@ -86,6 +94,9 @@ export const ActionPanel = ({
           <div className="bg-starlight/20 border-starlight/30 mb-4 rounded-md border p-3">
             <p className="text-starlight text-sm font-medium">
               Currently on mission: {playerData.currentMission.name}
+            </p>
+            <p className="text-starlight/70 mt-1 text-xs">
+              You can contribute to town while waiting for mission completion
             </p>
           </div>
         )}
@@ -149,10 +160,7 @@ export const ActionPanel = ({
 
                 <button
                   onClick={() => handleStartMission(mission.id!)}
-                  disabled={
-                    isStartingMission === mission.id ||
-                    !!playerData?.currentMission
-                  }
+                  disabled={isStartingMission === mission.id}
                   className={buttonVariants({
                     variant: "starlight",
                     size: "sm",
@@ -216,13 +224,16 @@ export const ActionPanel = ({
             <p className="text-cosmic text-sm font-medium">
               Currently on mission: {playerData.currentMission.name}
             </p>
+            <p className="text-cosmic/70 mt-1 text-xs">
+              You can contribute to town while waiting for mission completion
+            </p>
           </div>
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {availableMissions.map((mission) => {
-            const rewards = mission.rewards;
-            const skillRequired = mission.skill_required;
+            const selectedSkill =
+              selectedCombatSkills[mission.id!] || "unarmed";
 
             return (
               <div
@@ -233,7 +244,7 @@ export const ActionPanel = ({
                   <div className="mb-2 flex items-start justify-between">
                     <h3 className="text-base font-bold">{mission.name}</h3>
                     <div className="text-cosmic bg-cosmic/20 rounded px-2 py-1 text-xs">
-                      {mission.duration_minutes}min
+                      Level {mission.level}
                     </div>
                   </div>
 
@@ -241,47 +252,49 @@ export const ActionPanel = ({
                     {mission.description}
                   </p>
 
-                  {skillRequired && (
-                    <div className="mb-3">
-                      <p className="text-xs text-red-400">
-                        Requires: {skillRequired.skill} Level{" "}
-                        {skillRequired.level}
-                      </p>
-                    </div>
-                  )}
+                  <div className="mb-3">
+                    <p className="mb-2 text-xs font-medium text-yellow-400">
+                      Combat Skill:
+                    </p>
+                    <select
+                      value={selectedSkill}
+                      onChange={(e) =>
+                        setSelectedCombatSkills((prev) => ({
+                          ...prev,
+                          [mission.id!]: e.target.value,
+                        }))
+                      }
+                      className="bg-background/50 border-border w-full rounded border px-2 py-1 text-xs"
+                    >
+                      {combatSkills.map((skill) => {
+                        const playerSkill = playerData?.skills?.[skill];
+                        const skillLevel = playerSkill?.level || 1;
+                        return (
+                          <option key={skill} value={skill}>
+                            {skill.charAt(0).toUpperCase() + skill.slice(1)}{" "}
+                            (Level {skillLevel})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
 
-                  {rewards && (
-                    <div className="mb-3 space-y-1">
-                      <p className="text-xs font-medium text-green-400">
-                        Rewards:
-                      </p>
-                      {rewards.xp &&
-                        Object.entries(rewards.xp).map(([skill, amount]) => (
-                          <p key={skill} className="text-xs text-emerald-300">
-                            +{amount} {skill} XP
-                          </p>
-                        ))}
-                      {rewards.items &&
-                        Object.entries(rewards.items).map(([item, amount]) => (
-                          <p key={item} className="text-xs text-blue-300">
-                            +{amount} {item.replace(/_/g, " ")}
-                          </p>
-                        ))}
-                      {rewards.coins && (
-                        <p className="text-xs text-yellow-300">
-                          +{rewards.coins} coins
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  <div className="mb-3 space-y-1">
+                    <p className="text-xs font-medium text-green-400">
+                      Rewards:
+                    </p>
+                    <p className="text-xs text-yellow-300">
+                      1-5 coins (random)
+                    </p>
+                    <p className="text-xs text-emerald-300">
+                      +1 {selectedSkill} XP
+                    </p>
+                  </div>
                 </div>
 
                 <button
-                  onClick={() => handleStartMission(mission.id!)}
-                  disabled={
-                    isStartingMission === mission.id ||
-                    !!playerData?.currentMission
-                  }
+                  onClick={() => handleStartMission(mission.id!, selectedSkill)}
+                  disabled={isStartingMission === mission.id}
                   className={buttonVariants({
                     variant: "cosmic",
                     size: "sm",
@@ -425,9 +438,7 @@ export const ActionPanel = ({
                 <button
                   onClick={() => handleStartCrafting(recipe.id!)}
                   disabled={
-                    isStartingMission === recipe.id ||
-                    !!playerData?.currentMission ||
-                    !hasRequiredItems
+                    isStartingMission === recipe.id || !hasRequiredItems
                   }
                   className={buttonVariants({
                     variant: hasRequiredItems ? "glass" : "ghost",

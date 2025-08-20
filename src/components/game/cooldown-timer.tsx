@@ -161,11 +161,11 @@ export const CooldownTimer = ({ userId }: CooldownTimerProps) => {
         </div>
       </div>
 
-      {isMissionActive && progress > 50 && (
+      {/* {isMissionActive && progress > 50 && (
         <p className={`${textColor}/70 text-center text-xs`}>
           Nearly complete...
         </p>
-      )}
+      )} */}
     </div>
   );
 };
