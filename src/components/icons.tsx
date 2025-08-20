@@ -14,6 +14,7 @@ import {
   Moon,
   Package,
   Play,
+  RotateCcw,
   Star,
   Sun,
   Sword,
@@ -44,4 +45,5 @@ export const Icons = {
   clock: Clock,
   zap: Zap,
   alertTriangle: AlertTriangle,
+  refresh: RotateCcw,
 };

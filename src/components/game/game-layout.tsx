@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { resetGameData } from "@/actions/game-actions";
 import { ActionPanel } from "@/components/game/action-panel";
 import { CooldownTimer } from "@/components/game/cooldown-timer";
 import { GameLogPanel } from "@/components/game/game-log";
@@ -29,8 +30,28 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
   const [activeLeftPane, setActiveLeftPane] = useState<ActivePane>("info");
   const [activeRightPane, setActiveRightPane] =
     useState<ActivePane>("skills-missions");
+  const [isResetting, setIsResetting] = useState(false);
 
   const { playerData, townData, isLoading, error } = useGameState(userId);
+
+  const handleReset = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to reset all game data? This cannot be undone!",
+      )
+    ) {
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      await resetGameData(userId);
+    } catch (error) {
+      console.error("Failed to reset game data:", error);
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -72,6 +93,18 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
           </Link>
           <div className="flex items-center gap-2">
             <CooldownTimer userId={userId} />
+            <button
+              onClick={handleReset}
+              disabled={isResetting}
+              className={buttonVariants({ variant: "destructive", size: "sm" })}
+            >
+              {isResetting ? (
+                <Icons.loading className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Icons.refresh className="mr-2 h-4 w-4" />
+              )}
+              {isResetting ? "Resetting..." : "Reset Game"}
+            </button>
             <Link
               href="/"
               className={buttonVariants({ variant: "glass", size: "sm" })}

@@ -9,6 +9,8 @@ import {
   DEFAULT_INVENTORY,
   DEFAULT_SKILLS,
   DEFAULT_TOWN_UPGRADES,
+  getCurrentObjective,
+  TOWN_OBJECTIVES,
 } from "@/lib/game-config";
 import { db, gameLogs, players, towns } from "@/lib/schema";
 
@@ -294,6 +296,9 @@ export async function resolveMission(userId: string) {
       type: "action",
     });
 
+    // Check if any objectives are now complete
+    await checkAndCompleteObjectives();
+
     revalidatePath("/game");
     return {
       success: true,
@@ -367,6 +372,9 @@ export async function contributeToTown(
       type: "action",
     });
 
+    // Check if any objectives are now complete
+    await checkAndCompleteObjectives();
+
     revalidatePath("/game");
     return { success: true };
   } catch (error) {
@@ -388,5 +396,157 @@ export async function getGameLogs(userId: string, limit = 30) {
   } catch (error) {
     console.error("Failed to get game logs:", error);
     return { success: false, error: "Failed to get game logs" };
+  }
+}
+
+// Reset player and town data (temporary for testing)
+export async function resetGameData(userId: string) {
+  try {
+    // Reset player data
+    await db
+      .update(players)
+      .set({
+        strength: 5,
+        stamina: 5,
+        coins: 10,
+        reputation: 0,
+        inventory: DEFAULT_INVENTORY,
+        skills: DEFAULT_SKILLS,
+        missionsCompleted: 0,
+        lastActionTimestamp: new Date(0),
+        currentMission: null,
+      })
+      .where(eq(players.id, userId));
+
+    // Reset town data
+    const town = await db.query.towns.findFirst();
+    if (town) {
+      await db
+        .update(towns)
+        .set({
+          name: "Starscape Village",
+          level: 1,
+          treasury: {},
+          upgrades: DEFAULT_TOWN_UPGRADES,
+          unlockedMissions: [],
+          completedObjectives: [],
+          slayCounts: {},
+          unlockedTerritories: ["t1"],
+        })
+        .where(eq(towns.id, town.id));
+    }
+
+    // Clear game logs for this user
+    await db.delete(gameLogs).where(eq(gameLogs.playerId, userId));
+
+    // Add welcome log entry
+    await db.insert(gameLogs).values({
+      playerId: userId,
+      message: "Game data reset! Welcome back to Starscape.",
+      type: "system",
+    });
+
+    revalidatePath("/game");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to reset game data:", error);
+    return { success: false, error: "Failed to reset game data" };
+  }
+}
+
+// Check and complete town objectives
+export async function checkAndCompleteObjectives() {
+  try {
+    const town = await db.query.towns.findFirst();
+    if (!town) {
+      return { success: false, error: "Town not found" };
+    }
+
+    const completedObjectives = town.completedObjectives || [];
+    const currentObjective = getCurrentObjective(completedObjectives);
+
+    if (!currentObjective) {
+      return { success: true, message: "No active objectives" };
+    }
+
+    let isObjectiveMet = false;
+
+    if (currentObjective.type === "contribution") {
+      // Check if all required resources are in treasury
+      isObjectiveMet = Object.entries(currentObjective.requirements).every(
+        ([resource, amount]) => (town.treasury?.[resource] || 0) >= amount,
+      );
+    } else if (currentObjective.type === "slay") {
+      // Check if all required enemies have been slain
+      isObjectiveMet = Object.entries(currentObjective.requirements).every(
+        ([enemy, count]) => (town.slayCounts?.[enemy] || 0) >= count,
+      );
+    }
+
+    if (isObjectiveMet) {
+      // Complete the objective
+      const newCompletedObjectives = [
+        ...completedObjectives,
+        currentObjective.id,
+      ];
+      const updates: any = {
+        completedObjectives: newCompletedObjectives,
+      };
+
+      // Apply unlocks
+      if (currentObjective.unlocks.upgrades) {
+        currentObjective.unlocks.upgrades.forEach((upgrade) => {
+          updates[`upgrades.${upgrade}`] = true;
+        });
+      }
+
+      if (currentObjective.unlocks.missions) {
+        const currentUnlockedMissions = town.unlockedMissions || [];
+        const newUnlockedMissions = [
+          ...currentUnlockedMissions,
+          ...currentObjective.unlocks.missions.filter(
+            (mission) => !currentUnlockedMissions.includes(mission),
+          ),
+        ];
+        updates.unlockedMissions = newUnlockedMissions;
+      }
+
+      await db.update(towns).set(updates).where(eq(towns.id, town.id));
+
+      // Add log entries about the completion
+      const systemLogs = [
+        {
+          playerId: "system",
+          message: `🎉 Town Objective Complete: ${currentObjective.name}!`,
+          type: "system",
+        },
+      ];
+
+      if (currentObjective.unlocks.upgrades) {
+        currentObjective.unlocks.upgrades.forEach((upgrade) => {
+          systemLogs.push({
+            playerId: "system",
+            message: `🔓 Unlocked: ${upgrade.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}`,
+            type: "system",
+          });
+        });
+      }
+
+      // Insert all log entries
+      await db.insert(gameLogs).values(systemLogs);
+
+      revalidatePath("/game");
+      return {
+        success: true,
+        completed: true,
+        objective: currentObjective.name,
+        unlocks: currentObjective.unlocks,
+      };
+    }
+
+    return { success: true, completed: false };
+  } catch (error) {
+    console.error("Failed to check objectives:", error);
+    return { success: false, error: "Failed to check objectives" };
   }
 }
