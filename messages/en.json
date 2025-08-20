@@ -5,5 +5,21 @@
     "subtitle": "experiment with my Next15 template",
     "playButton": "Play",
     "aboutButton": "About"
+  },
+  "about": {
+    "title": "About Starscape",
+    "subtitle": "A turn-based PvE MMO idea (a very large one I can only convey one tiny step at a time).",
+    "visionTitle": "Our Vision",
+    "visionText1": "vision statement.",
+    "visionText2": "I'm a lil passionate about this idea to create immersive experiences that bring players together in a shared universe of exploration and discovery.",
+    "featuresTitle": "Game Features",
+    "feature1": "All actions turn-based with timer",
+    "feature2": "Co-build the town",
+    "feature3": "Character progression and customization",
+    "feature4": "Multiplayer PvE experiences",
+    "feature5": "Craft and Trade",
+    "joinTitle": "Join the Adventure",
+    "joinText": "giga early alpha, want to join? Sign in (via GitHub) to start playing and experience the universe of Starscape.",
+    "startJourney": "Start Your Journey"
   }
 }

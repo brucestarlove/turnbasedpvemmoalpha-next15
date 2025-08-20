@@ -32,19 +32,27 @@ const HomePage = async () => {
         </p>
         <div className="mt-2 flex gap-4">
           {session ? (
-            <StripeButton />
-          ) : (
-            <Link
-              href=""
-              target="_blank"
-              className={buttonVariants({ variant: "starlight", size: "lg" })}
-            >
-              {t("playButton")}
-            </Link>
-          )}
+            <>
+              <Link
+                href="#"
+                className={buttonVariants({ variant: "starlight", size: "lg" })}
+              >
+                <Icons.play className="mr-2 h-4 w-4" />
+                {t("playButton")}
+              </Link>
+              <StripeButton />
+            </>
+          ) : // Play button commented out when not logged in
+          // <Link
+          //   href=""
+          //   target="_blank"
+          //   className={buttonVariants({ variant: "starlight", size: "lg" })}
+          // >
+          //   {t("playButton")}
+          // </Link>
+          null}
           <Link
-            href=""
-            target="_blank"
+            href="/about"
             className={buttonVariants({ variant: "glass", size: "lg" })}
           >
             <Icons.info /> {t("aboutButton")}

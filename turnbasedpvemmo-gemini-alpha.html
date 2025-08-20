@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incremental Town Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .cooldown-bar {
+            transition: width 0.5s linear;
+        }
+        .nav-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .nav-btn.active {
+            background-color: #4A5568; /* bg-gray-700 */
+            color: #E2E8F0; /* text-gray-200 */
+        }
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+    <div id="loading-screen" class="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
+        <div class="text-center">
+            <svg class="animate-spin h-10 w-10 text-blue-400 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-lg font-semibold">Loading Game Data...</p>
+        </div>
+    </div>
+
+    <div id="game-container" class="container mx-auto p-4 max-w-7xl hidden">
+        <div class="flex gap-4">
+            <!-- Left-hand Nav -->
+            <div class="flex flex-col space-y-2 bg-gray-800 p-2 rounded-lg">
+                <button id="show-info-btn" class="nav-btn active p-2 rounded-md hover:bg-gray-700" title="Player Info">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </button>
+                <button id="show-skills-btn" class="nav-btn p-2 rounded-md hover:bg-gray-700" title="Skills">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0L12 2.69z"></path></svg>
+                </button>
+                <button id="show-inventory-btn" class="nav-btn p-2 rounded-md hover:bg-gray-700" title="Inventory">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                </button>
+                <hr class="border-gray-600 my-2">
+                <button id="show-skills-missions-btn" class="nav-btn active p-2 rounded-md hover:bg-gray-700" title="Skills Mission Board">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line><line x1="3" y1="12" x2="21" y2="12"></line></svg>
+                </button>
+                 <button id="show-combat-missions-btn" class="nav-btn p-2 rounded-md hover:bg-gray-700 hidden" title="Combat Mission Board">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0L12 2.69z"></path><path d="M14.5 8.5l-5 5"></path><path d="M9.5 8.5l5 5"></path></svg>
+                </button>
+                <button id="show-crafting-btn" class="nav-btn p-2 rounded-md hover:bg-gray-700 hidden" title="Crafting Station">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 21H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1.5"></path><path d="M12 15V9"></path><path d="M9 12h6"></path><path d="M21.6 16.2a2.4 2.4 0 0 0-3.2 0l-1.4 1.4a2.4 2.4 0 0 0 0 3.2l.1.1a2.4 2.4 0 0 0 3.2 0l1.4-1.4a2.4 2.4 0 0 0 0-3.2z"></path></svg>
+                </button>
+                 <button id="show-map-btn" class="nav-btn p-2 rounded-md hover:bg-gray-700" title="Map" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+                </button>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Left Column: Player Info & Town -->
+                <div class="md:col-span-1 space-y-4">
+                    <!-- Player Info Pane -->
+                    <div id="player-info-pane" class="bg-gray-800 rounded-lg shadow-lg p-4">
+                        <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-2">Player Info</h2>
+                        <div class="text-sm space-y-1">
+                            <p><strong>User ID:</strong> <span id="user-id" class="font-mono"></span></p>
+                            <p><strong>Coins:</strong> <span id="player-coins"></span></p>
+                            <p><strong>Reputation:</strong> <span id="player-rep"></span></p>
+                            <h3 class="text-lg font-semibold mt-3 pt-2 border-t border-gray-700">Attributes</h3>
+                            <p><strong>Strength:</strong> <span id="player-str"></span></p>
+                            <p><strong>Stamina:</strong> <span id="player-stam"></span></p>
+                            <h3 class="text-lg font-semibold mt-3 pt-2 border-t border-gray-700">Combat Skills</h3>
+                            <p><strong>Unarmed:</strong> <span id="player-unarmed"></span></p>
+                            <p><strong>Weapons:</strong> <span id="player-weapons"></span></p>
+                            <p><strong>Archery:</strong> <span id="player-archery"></span></p>
+                            <p><strong>Traps:</strong> <span id="player-traps"></span></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Skills Pane (hidden by default) -->
+                    <div id="skills-pane" class="bg-gray-800 rounded-lg shadow-lg p-4 hidden">
+                         <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-2">Professions</h2>
+                         <div id="skills-list" class="text-sm space-y-1"></div>
+                    </div>
+
+                    <!-- Inventory Pane (hidden by default) -->
+                    <div id="inventory-pane" class="bg-gray-800 rounded-lg shadow-lg p-4 hidden">
+                         <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-2">Inventory</h2>
+                         <div id="inventory-list" class="text-sm space-y-1 h-64 overflow-y-auto"></div>
+                    </div>
+
+                    <!-- Town Center -->
+                    <div class="bg-gray-800 rounded-lg shadow-lg p-4">
+                        <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-2">Town Center</h2>
+                        <p><strong>Level:</strong> <span id="town-level"></span></p>
+                        <div id="town-objective-container" class="mt-4 pt-4 border-t border-gray-700"></div>
+                        <h3 class="text-lg font-semibold mt-4">Treasury</h3>
+                        <div id="town-treasury" class="text-sm space-y-1 mt-2 h-32 overflow-y-auto"></div>
+                         <div class="mt-4">
+                            <input type="text" id="resource-name-input" placeholder="Resource Name (e.g., sturdy wood)" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-sm">
+                            <input type="number" id="resource-amount-input" placeholder="Amount" class="w-full mt-2 bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-sm">
+                            <button id="contribute-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md mt-2 text-sm">Contribute</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Actions, Missions, Logs -->
+                <div class="md:col-span-2 space-y-4">
+                    <!-- Action Status -->
+                    <div id="action-status" class="bg-gray-800 rounded-lg shadow-lg p-4">
+                        <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-4">Action Status</h2>
+                        <div id="action-available">
+                            <p class="text-green-400">Ready for your next action!</p>
+                        </div>
+                        <div id="action-cooldown" class="hidden">
+                            <p>Next action available in: <span id="cooldown-timer" class="font-mono font-bold"></span></p>
+                            <div class="w-full bg-gray-700 rounded-full h-4 mt-2">
+                                <div id="cooldown-bar" class="bg-blue-500 h-4 rounded-full cooldown-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skills Mission Board Pane -->
+                    <div id="skills-mission-pane" class="bg-gray-800 rounded-lg shadow-lg p-4">
+                        <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-4">Skills Mission Board</h2>
+                        <div id="skills-mission-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+
+                    <!-- Combat Mission Board Pane -->
+                    <div id="combat-mission-pane" class="bg-gray-800 rounded-lg shadow-lg p-4 hidden">
+                        <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-4">Combat Mission Board</h2>
+                        <div id="combat-mission-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+
+                    <!-- Crafting Station Pane -->
+                    <div id="crafting-pane" class="bg-gray-800 rounded-lg shadow-lg p-4 hidden">
+                        <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-4">Crafting Station</h2>
+                        <div id="crafting-recipe-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+                    
+                    <!-- Map Pane -->
+                    <div id="map-pane" class="bg-gray-800 rounded-lg shadow-lg p-4 hidden">
+                        <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-4">World Map</h2>
+                        <div class="text-center p-8 bg-gray-700 rounded-lg">
+                            <p>The world is vast and unknown.</p>
+                            <p class="text-sm text-gray-400 mt-2">More territories will be revealed as the town grows.</p>
+                        </div>
+                    </div>
+
+                     <!-- Game Log -->
+                    <div class="bg-gray-800 rounded-lg shadow-lg p-4">
+                        <h2 class="text-xl font-bold border-b border-gray-700 pb-2 mb-2">Game Log</h2>
+                        <div id="game-log" class="text-sm h-48 overflow-y-auto space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-bold" id="modal-title">Confirm Action</h3>
+            <p class="mt-2 text-sm" id="modal-description"></p>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-sm font-semibold">Cancel</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-sm font-semibold">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mission Results Modal -->
+    <div id="results-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4 text-center">
+            <h3 class="text-2xl font-bold mb-4" id="results-title">Mission Complete!</h3>
+            <div id="results-content" class="text-left space-y-2 mb-6"></div>
+            <button id="results-acknowledge-btn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold">Acknowledge</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, increment, runTransaction, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- FIREBASE CONFIG (DO NOT EDIT) ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-pve-game';
+        
+        // --- INITIALIZE FIREBASE ---
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- GAME CONSTANTS ---
+        const COOLDOWN_SECONDS = 10; // Adjusted for testing
+        const COOLDOWN_MS = COOLDOWN_SECONDS * 1000;
+
+        // --- GAME STATE ---
+        let userId;
+        let playerDocRef;
+        let townDocRef;
+        let playerData = {};
+        let townData = {};
+        let cooldownInterval;
+        let unsubscribePlayer;
+        let unsubscribeTown;
+        let isResolvingMission = false; // Concurrency lock
+
+        // --- UI ELEMENTS ---
+        const loadingScreen = document.getElementById('loading-screen');
+        const gameContainer = document.getElementById('game-container');
+        const userIdEl = document.getElementById('user-id');
+        const playerStrEl = document.getElementById('player-str');
+        const playerStamEl = document.getElementById('player-stam');
+        const playerUnarmedEl = document.getElementById('player-unarmed');
+        const playerWeaponsEl = document.getElementById('player-weapons');
+        const playerArcheryEl = document.getElementById('player-archery');
+        const playerTrapsEl = document.getElementById('player-traps');
+        const playerCoinsEl = document.getElementById('player-coins');
+        const playerRepEl = document.getElementById('player-rep');
+        const skillsListEl = document.getElementById('skills-list');
+        const inventoryListEl = document.getElementById('inventory-list');
+        const townLevelEl = document.getElementById('town-level');
+        const townTreasuryEl = document.getElementById('town-treasury');
+        const townObjectiveContainer = document.getElementById('town-objective-container');
+        const contributeBtn = document.getElementById('contribute-btn');
+        const actionAvailableEl = document.getElementById('action-available');
+        const actionCooldownEl = document.getElementById('action-cooldown');
+        const cooldownTimerEl = document.getElementById('cooldown-timer');
+        const cooldownBarEl = document.getElementById('cooldown-bar');
+        const skillsMissionListEl = document.getElementById('skills-mission-list');
+        const combatMissionListEl = document.getElementById('combat-mission-list');
+        const craftingRecipeListEl = document.getElementById('crafting-recipe-list');
+        const gameLogEl = document.getElementById('game-log');
+        
+        // --- MODAL ELEMENTS ---
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalDescription = document.getElementById('modal-description');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        let modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        
+        const resultsModal = document.getElementById('results-modal');
+        const resultsTitle = document.getElementById('results-title');
+        const resultsContent = document.getElementById('results-content');
+        const resultsAcknowledgeBtn = document.getElementById('results-acknowledge-btn');
+
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                userIdEl.textContent = userId;
+                await initGame();
+            }
+        });
+
+        async function authenticate() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication failed:", error);
+            }
+        }
+        
+        // --- GAME INITIALIZATION ---
+        async function initGame() {
+            playerDocRef = doc(db, `artifacts/${appId}/users/${userId}/player/data`);
+            townDocRef = doc(db, `artifacts/${appId}/public/data/town/state`);
+
+            await checkAndCreatePlayer();
+            await checkAndCreateTown();
+
+            if (unsubscribePlayer) unsubscribePlayer();
+            unsubscribePlayer = onSnapshot(playerDocRef, (doc) => {
+                if (doc.exists()) {
+                    playerData = doc.data();
+                    updatePlayerUI();
+                    checkActionStatus();
+                    updateNavUnlocks();
+                }
+            });
+
+            if (unsubscribeTown) unsubscribeTown();
+            unsubscribeTown = onSnapshot(townDocRef, (doc) => {
+                const oldData = townData; 
+                if (doc.exists()) {
+                    townData = doc.data();
+                    updateTownUI();
+                    updateMissionBoard();
+                    updateCraftingStation();
+                    updateTownObjectives(oldData);
+                    updateNavUnlocks();
+                }
+            });
+
+            setupNavListeners();
+            loadingScreen.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+        }
+
+        async function checkAndCreatePlayer() {
+            const docSnap = await getDoc(playerDocRef);
+            if (!docSnap.exists()) {
+                const newPlayerData = {
+                    strength: 5, stamina: 5, coins: 10, reputation: 0,
+                    inventory: { stone: 2 },
+                    skills: {
+                        unarmed: { level: 1, xp: 0 }, weapons: { level: 1, xp: 0 }, archery: { level: 1, xp: 0 }, traps: { level: 1, xp: 0 },
+                        logging: { level: 1, xp: 0 }, mining: { level: 1, xp: 0 }, farming: { level: 1, xp: 0 }, gathering: { level: 1, xp: 0 }, fishing: { level: 1, xp: 0 },
+                    },
+                    missionsCompleted: 0,
+                    lastActionTimestamp: 0, currentMission: null,
+                    log: ["Welcome to the village! Your journey begins."]
+                };
+                await setDoc(playerDocRef, newPlayerData);
+            }
+        }
+
+        async function checkAndCreateTown() {
+            const docSnap = await getDoc(townDocRef);
+            if (!docSnap.exists()) {
+                const newTownData = {
+                    level: 1,
+                    treasury: { sturdy_wood: 0, stone: 0 },
+                    upgrades: { map_unlocked: false, combat_board_unlocked: false, crafting_station_unlocked: false },
+                    unlockedMissions: [],
+                    completedObjectives: [],
+                    slayCounts: {},
+                    unlockedTerritories: ['t1']
+                };
+                await setDoc(townDocRef, newTownData);
+            }
+        }
+
+        // --- UI UPDATES ---
+        function updatePlayerUI() {
+            if (!playerData) return;
+            playerCoinsEl.textContent = playerData.coins || 0;
+            playerRepEl.textContent = playerData.reputation || 0;
+            playerStrEl.textContent = playerData.strength || 5;
+            playerStamEl.textContent = playerData.stamina || 5;
+
+            const skills = playerData.skills || {};
+            playerUnarmedEl.textContent = `${skills.unarmed?.level || 1} (${skills.unarmed?.xp || 0} xp)`;
+            playerWeaponsEl.textContent = `${skills.weapons?.level || 1} (${skills.weapons?.xp || 0} xp)`;
+            playerArcheryEl.textContent = `${skills.archery?.level || 1} (${skills.archery?.xp || 0} xp)`;
+            playerTrapsEl.textContent = `${skills.traps?.level || 1} (${skills.traps?.xp || 0} xp)`;
+
+            skillsListEl.innerHTML = '';
+            const professionSkills = ['logging', 'mining', 'farming', 'gathering', 'fishing'];
+            professionSkills.forEach(skill => {
+                const skillData = skills[skill] || { level: 1, xp: 0 };
+                const skillEl = document.createElement('p');
+                skillEl.innerHTML = `<strong>${capitalize(skill)}:</strong> ${skillData.level} (${skillData.xp} xp)`;
+                skillsListEl.appendChild(skillEl);
+            });
+
+            inventoryListEl.innerHTML = '';
+            if (playerData.inventory && Object.keys(playerData.inventory).length > 0) {
+                for (const [item, quantity] of Object.entries(playerData.inventory)) {
+                    const itemEl = document.createElement('p');
+                    itemEl.textContent = `${capitalize(item.replace(/_/g, ' '))}: ${quantity}`;
+                    inventoryListEl.appendChild(itemEl);
+                }
+            } else {
+                inventoryListEl.innerHTML = '<p class="text-gray-500">Your inventory is empty.</p>';
+            }
+            
+            gameLogEl.innerHTML = '';
+            if (playerData.log) {
+                playerData.log.slice().reverse().forEach(entry => {
+                    const logEntry = document.createElement('p');
+                    logEntry.className = 'border-b border-gray-700 pb-1';
+                    logEntry.textContent = entry;
+                    gameLogEl.appendChild(logEntry);
+                });
+            }
+        }
+
+        function updateTownUI() {
+            if (!townData) return;
+            townLevelEl.textContent = townData.level || 1;
+            townTreasuryEl.innerHTML = '';
+            if (townData.treasury && Object.keys(townData.treasury).length > 0) {
+                for (const [item, quantity] of Object.entries(townData.treasury)) {
+                    const itemEl = document.createElement('p');
+                    itemEl.textContent = `${capitalize(item.replace(/_/g, ' '))}: ${quantity}`;
+                    townTreasuryEl.appendChild(itemEl);
+                }
+            } else {
+                 townTreasuryEl.innerHTML = '<p class="text-gray-500">The treasury is empty.</p>';
+            }
+        }
+        
+        function updateNavUnlocks() {
+            if (!townData || !playerData) return;
+            
+            document.getElementById('show-map-btn').disabled = !(townData.upgrades?.map_unlocked);
+            
+            const combatBtn = document.getElementById('show-combat-missions-btn');
+            if (playerData.missionsCompleted > 0) combatBtn.classList.remove('hidden');
+            else combatBtn.classList.add('hidden');
+            
+            const craftingBtn = document.getElementById('show-crafting-btn');
+            if (townData.upgrades?.crafting_station_unlocked) craftingBtn.classList.remove('hidden');
+            else craftingBtn.classList.add('hidden');
+        }
+
+        function logToGame(message) {
+            if (!playerDocRef) return;
+            const newLog = [`[${new Date().toLocaleTimeString()}] ${message}`, ...(playerData.log || [])].slice(0, 30);
+            updateDoc(playerDocRef, { log: newLog }).catch(console.error);
+        }
+        
+        async function logToTown(message) {
+             logToGame(`[TOWN] ${message}`);
+        }
+
+        // --- ACTION & COOLDOWN LOGIC ---
+        function checkActionStatus() {
+            if (playerData.currentMission) {
+                showMissionInProgress(playerData.currentMission);
+                return;
+            }
+            const now = Date.now();
+            const lastAction = playerData.lastActionTimestamp || 0;
+            const timeSinceLastAction = now - lastAction;
+            if (timeSinceLastAction >= COOLDOWN_MS) {
+                actionAvailableEl.classList.remove('hidden');
+                actionCooldownEl.classList.add('hidden');
+                if (cooldownInterval) clearInterval(cooldownInterval);
+            } else {
+                actionAvailableEl.classList.add('hidden');
+                actionCooldownEl.classList.remove('hidden');
+                const remainingTime = COOLDOWN_MS - timeSinceLastAction;
+                startCooldownTimer(remainingTime);
+            }
+        }
+        
+        function showMissionInProgress(mission) {
+            actionAvailableEl.classList.add('hidden');
+            actionCooldownEl.classList.remove('hidden');
+            const now = Date.now();
+            const endTime = (playerData.lastActionTimestamp || now) + COOLDOWN_MS;
+            const remainingTime = Math.max(0, endTime - now);
+            if (remainingTime <= 0) {
+                 resolveMission();
+            } else {
+                startCooldownTimer(remainingTime, `On mission: ${mission.name}`);
+            }
+        }
+
+        function startCooldownTimer(duration) {
+            if (cooldownInterval) clearInterval(cooldownInterval);
+            let remaining = duration;
+            const updateTimer = () => {
+                if (remaining <= 0) {
+                    clearInterval(cooldownInterval);
+                    if(playerData.currentMission) resolveMission();
+                    else checkActionStatus();
+                    return;
+                }
+                remaining -= 1000;
+                const seconds = Math.floor((remaining / 1000) % 60);
+                cooldownTimerEl.textContent = `00:${seconds.toString().padStart(2, '0')}`;
+                const progress = ((COOLDOWN_MS - remaining) / COOLDOWN_MS) * 100;
+                cooldownBarEl.style.width = `${progress}%`;
+            }
+            updateTimer();
+            cooldownInterval = setInterval(updateTimer, 1000);
+        }
+
+        // --- MISSION & CRAFTING DATA ---
+        const ALL_MISSIONS_POOL = {
+            'm101': { name: 'Gather Sturdy Wood', type: 'gathering', category: 'skill', resource: 'sturdy_wood', amount: 1, skill: 'logging', description: 'Collect wood from the nearby thicket.' },
+            'm102': { name: 'Forage for Berries', type: 'gathering', category: 'skill', resource: 'berries', amount: 2, skill: 'gathering', description: 'Find edible berries in the undergrowth.' },
+            'm103': { name: 'Hunt Rabid Wolf', type: 'combat', category: 'combat', enemy: 'Rabid Wolf', level: 1, skill: 'unarmed', description: 'A rabid wolf is menacing the area. Take it down.' },
+        };
+        const CRAFTING_RECIPES = {
+            'craft001': { name: 'Strong Wooden Sword', type: 'crafting', cost: { sturdy_wood: 4 }, result: { 'strong_wooden_sword': 1 }, skill: 'weapons', description: 'Craft a basic but sturdy sword.' }
+        };
+
+        const TERRITORY_MISSIONS = {
+            't1': ['m101', 'm102'],
+        };
+
+        function updateMissionBoard() {
+            skillsMissionListEl.innerHTML = '';
+            combatMissionListEl.innerHTML = '';
+            let availableMissionIds = new Set();
+
+            (townData.unlockedTerritories || ['t1']).forEach(territoryId => {
+                TERRITORY_MISSIONS[territoryId]?.forEach(id => availableMissionIds.add(id));
+            });
+            (townData.unlockedMissions || []).forEach(id => availableMissionIds.add(id));
+
+            availableMissionIds.forEach(missionId => {
+                const mission = ALL_MISSIONS_POOL[missionId];
+                if (mission) {
+                    const missionCard = document.createElement('div');
+                    missionCard.className = 'bg-gray-700 p-3 rounded-lg flex flex-col justify-between';
+                    missionCard.innerHTML = `<div><h3 class="font-bold">${mission.name}</h3><p class="text-xs text-gray-400 mt-1">${mission.description}</p></div><button data-mission-id="${missionId}" class="mission-btn mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">Select</button>`;
+                    if (mission.category === 'combat') {
+                        combatMissionListEl.appendChild(missionCard);
+                    } else {
+                        skillsMissionListEl.appendChild(missionCard);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.mission-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const missionId = e.target.getAttribute('data-mission-id');
+                    const mission = { ...ALL_MISSIONS_POOL[missionId], id: missionId };
+                    if (mission) promptMissionConfirmation(mission);
+                });
+            });
+        }
+        
+        function updateCraftingStation() {
+            craftingRecipeListEl.innerHTML = '';
+            if (!townData.upgrades?.crafting_station_unlocked) return;
+
+            Object.entries(CRAFTING_RECIPES).forEach(([id, recipe]) => {
+                const recipeCard = document.createElement('div');
+                recipeCard.className = 'bg-gray-700 p-3 rounded-lg flex flex-col justify-between';
+                let costText = Object.entries(recipe.cost).map(([item, amount]) => `${amount} ${capitalize(item.replace(/_/g, ' '))}`).join(', ');
+                recipeCard.innerHTML = `<div><h3 class="font-bold">${recipe.name}</h3><p class="text-xs text-gray-400 mt-1">${recipe.description}</p><p class="text-xs text-gray-300 mt-2">Cost: ${costText}</p></div><button data-recipe-id="${id}" class="craft-btn mt-3 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded text-sm">Craft</button>`;
+                craftingRecipeListEl.appendChild(recipeCard);
+            });
+            
+            document.querySelectorAll('.craft-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const recipeId = e.target.getAttribute('data-recipe-id');
+                    const recipe = { ...CRAFTING_RECIPES[recipeId], id: recipeId };
+                    if (recipe) promptMissionConfirmation(recipe);
+                });
+            });
+        }
+
+        function promptMissionConfirmation(action) {
+            modalTitle.textContent = `Confirm: ${action.name}`;
+            modalDescription.textContent = action.description;
+            confirmationModal.classList.remove('hidden');
+            const confirmHandler = async () => {
+                await startMission(action);
+                confirmationModal.classList.add('hidden');
+            };
+            const newBtn = modalConfirmBtn.cloneNode(true);
+            modalConfirmBtn.parentNode.replaceChild(newBtn, modalConfirmBtn);
+            modalConfirmBtn = newBtn;
+            modalConfirmBtn.addEventListener('click', confirmHandler, { once: true });
+        }
+        
+        modalCancelBtn.addEventListener('click', () => confirmationModal.classList.add('hidden'));
+
+        async function startMission(action) {
+             const now = Date.now();
+             const lastAction = playerData.lastActionTimestamp || 0;
+             if (now - lastAction < COOLDOWN_MS) {
+                 logToGame("Action is still on cooldown.");
+                 return;
+             }
+            await updateDoc(playerDocRef, { lastActionTimestamp: now, currentMission: action });
+            logToGame(`You have started: ${action.name}.`);
+            checkActionStatus();
+        }
+
+        async function resolveMission() {
+            if (isResolvingMission) return;
+            const mission = playerData.currentMission;
+            if (!mission) return;
+            
+            isResolvingMission = true;
+            let resultsText = '';
+            let rewards = {};
+            let xpGained = 0;
+            let isSuccessfulAction = false;
+            let logQueue = [];
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const playerDoc = await transaction.get(playerDocRef);
+                    const townDoc = await transaction.get(townDocRef);
+                    if (!playerDoc.exists() || !townDoc.exists()) throw "Game data not found";
+                    
+                    const currentPlayerData = playerDoc.data();
+                    const currentTownData = townDoc.data();
+                    
+                    const playerUpdates = { currentMission: null };
+                    const townUpdates = {};
+
+                    if (mission.type === 'gathering') {
+                        rewards[mission.resource] = mission.amount;
+                        resultsText = `You successfully gathered ${mission.amount} ${capitalize(mission.resource.replace(/_/g, ' '))}.`;
+                        xpGained = 1;
+                        isSuccessfulAction = true;
+                    } else if (mission.type === 'combat') {
+                        const playerPower = currentPlayerData.strength;
+                        const success = Math.random() < (playerPower / (playerPower + mission.level * 3));
+                        if (success) {
+                            const coinsFound = Math.floor(Math.random() * 5) + 1;
+                            rewards['coins'] = coinsFound;
+                            resultsText = `You defeated the ${mission.enemy} and found ${coinsFound} coins!`;
+                            xpGained = 1;
+                            townUpdates[`slayCounts.${mission.enemy}`] = increment(1);
+                            isSuccessfulAction = true;
+                        } else {
+                            resultsText = `You were defeated by the ${mission.enemy} and fled back to town.`;
+                        }
+                    } else if (mission.type === 'crafting') {
+                        const currentInventory = currentPlayerData.inventory;
+                        let canCraft = true;
+                        for (const [item, amount] of Object.entries(mission.cost)) {
+                            if ((currentInventory[item] || 0) < amount) {
+                                canCraft = false;
+                                break;
+                            }
+                        }
+                        if (canCraft) {
+                            for (const [item, amount] of Object.entries(mission.cost)) {
+                                playerUpdates[`inventory.${item}`] = increment(-amount);
+                            }
+                            rewards = mission.result;
+                            resultsText = `You successfully crafted a ${mission.name}.`;
+                            xpGained = 5;
+                            isSuccessfulAction = true;
+                        } else {
+                            resultsText = `You don't have the resources to craft a ${mission.name}.`;
+                        }
+                    }
+
+                    for (const [item, quantity] of Object.entries(rewards)) {
+                        playerUpdates[item === 'coins' ? 'coins' : `inventory.${item}`] = increment(quantity);
+                    }
+                    if (xpGained > 0 && mission.skill) {
+                        playerUpdates[`skills.${mission.skill}.xp`] = increment(xpGained);
+                    }
+
+                    if (isSuccessfulAction) {
+                        playerUpdates['missionsCompleted'] = increment(1);
+                        if ((currentPlayerData.missionsCompleted || 0) === 0 && !currentTownData.unlockedMissions.includes('m103')) {
+                             townUpdates['unlockedMissions'] = arrayUnion('m103');
+                             logQueue.push("[TOWN] A dangerous wolf has been spotted nearby! The Combat Mission Board is now available.");
+                        }
+                    }
+                    
+                    transaction.update(playerDocRef, playerUpdates);
+                    if (Object.keys(townUpdates).length > 0) {
+                        transaction.update(townDocRef, townUpdates);
+                    }
+                });
+
+                logToGame(resultsText);
+                logQueue.forEach(msg => logToGame(msg));
+                
+                resultsTitle.textContent = "Action Complete!";
+                resultsContent.innerHTML = `<p>${resultsText}</p>`;
+                const finalRewards = mission.type === 'crafting' ? mission.result : rewards;
+                if (Object.keys(finalRewards).length > 0 || xpGained > 0) {
+                    let rewardsHtml = '<h4 class="font-semibold mt-4">Rewards:</h4><ul>';
+                     for (const [item, quantity] of Object.entries(finalRewards)) {
+                        rewardsHtml += `<li>+${quantity} ${capitalize(item.replace(/_/g, ' '))}</li>`;
+                    }
+                    if (xpGained > 0 && mission.skill) {
+                        rewardsHtml += `<li>+${xpGained} ${capitalize(mission.skill)} XP</li>`;
+                    }
+                    rewardsHtml += '</ul>';
+                    resultsContent.innerHTML += rewardsHtml;
+                }
+                resultsModal.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Resolve Mission Transaction failed: ", error);
+                logToGame("An error occurred while resolving your action.");
+            } finally {
+                isResolvingMission = false;
+            }
+        }
+        
+        resultsAcknowledgeBtn.addEventListener('click', () => {
+            resultsModal.classList.add('hidden');
+            checkActionStatus();
+        });
+
+        // --- TOWN LOGIC ---
+        const TOWN_OBJECTIVES = [
+            { id: 'build_notice_board', name: 'Build Map & Notice Board', type: 'contribution', requirements: { sturdy_wood: 2, stone: 2 }, unlocks: { upgrades: ['map_unlocked'] } },
+            { id: 'clear_wolves', name: 'Clear the Wolf Menace', type: 'slay', requirements: { 'Rabid Wolf': 1 }, unlocks: { }, dependsOn: 'build_notice_board' },
+            { id: 'build_crafting_station', name: 'Build a Crafting Station', type: 'contribution', requirements: { sturdy_wood: 6 }, unlocks: { upgrades: ['crafting_station_unlocked'] }, dependsOn: 'clear_wolves' }
+        ];
+
+        async function updateTownObjectives(oldTownData = {}) {
+            const completed = townData.completedObjectives || [];
+            let currentObjective = null;
+            let nextObjective = null;
+
+            for (const obj of TOWN_OBJECTIVES) {
+                if (!completed.includes(obj.id)) {
+                    if (!currentObjective && (!obj.dependsOn || completed.includes(obj.dependsOn))) {
+                        currentObjective = obj;
+                    } else if (currentObjective && !nextObjective && (!obj.dependsOn || completed.includes(obj.dependsOn))) {
+                        nextObjective = obj;
+                        break;
+                    }
+                }
+            }
+
+            if (!currentObjective) {
+                townObjectiveContainer.innerHTML = `<h3 class="text-lg font-semibold mb-2">Town Objective:</h3><p class="text-sm text-green-400">All objectives complete for now!</p>`;
+                return;
+            }
+
+            let goalMet = false;
+            let progressHtml = `<h3 class="text-lg font-semibold mb-2">Objective: ${currentObjective.name}</h3><div class="space-y-1 text-sm">`;
+            
+            if (currentObjective.type === 'contribution') {
+                const treasury = townData.treasury || {};
+                let requirementsMet = true;
+                for (const [resource, amount] of Object.entries(currentObjective.requirements)) {
+                    const currentAmount = treasury[resource] || 0;
+                    if (currentAmount < amount) requirementsMet = false;
+                    progressHtml += `<p>${capitalize(resource.replace(/_/g, ' '))}: ${currentAmount} / ${amount}</p>`;
+                }
+                if (requirementsMet) goalMet = true;
+            } else if (currentObjective.type === 'slay') {
+                 const slayCounts = townData.slayCounts || {};
+                 let requirementsMet = true;
+                 for (const [enemy, count] of Object.entries(currentObjective.requirements)) {
+                    const currentCount = slayCounts[enemy] || 0;
+                    if (currentCount < count) requirementsMet = false;
+                    progressHtml += `<p>Slay ${enemy}: ${currentCount} / ${count}</p>`;
+                }
+                if (requirementsMet) goalMet = true;
+            }
+            progressHtml += `</div>`;
+            townObjectiveContainer.innerHTML = progressHtml;
+
+            const wasAlreadyCompleted = oldTownData.completedObjectives?.includes(currentObjective.id);
+
+            if (goalMet && !wasAlreadyCompleted) {
+                try {
+                    await runTransaction(db, async (transaction) => {
+                        const townDoc = await transaction.get(townDocRef);
+                        if (!townDoc.exists() || townDoc.data().completedObjectives.includes(currentObjective.id)) {
+                            return;
+                        }
+                        const updates = { completedObjectives: arrayUnion(currentObjective.id) };
+                        if (currentObjective.unlocks.upgrades) {
+                            currentObjective.unlocks.upgrades.forEach(upg => {
+                                updates[`upgrades.${upg}`] = true;
+                                logToTown(`The ${upg.replace(/_/g, ' ')} has been unlocked!`);
+                            });
+                        }
+                        if (currentObjective.unlocks.missions) {
+                            updates.unlockedMissions = arrayUnion(...currentObjective.unlocks.missions);
+                        }
+                        transaction.update(townDocRef, updates);
+                    });
+                    logToTown(`Objective Complete: ${currentObjective.name}!`);
+                    if(nextObjective) {
+                        logToTown(`New Objective: ${nextObjective.name}.`);
+                    }
+                } catch (error) {
+                    console.error("Update objectives transaction failed:", error);
+                }
+            }
+        }
+
+        contributeBtn.addEventListener('click', async () => {
+            const resourceInput = document.getElementById('resource-name-input').value.toLowerCase().trim();
+            const resourceName = resourceInput.replace(/ /g, '_');
+            const amount = parseInt(document.getElementById('resource-amount-input').value);
+            
+            if (!resourceName || !amount || amount <= 0) {
+                logToGame("Invalid resource or amount."); return;
+            }
+            
+            const repGain = amount;
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const playerDoc = await transaction.get(playerDocRef);
+                    if (!playerDoc.exists()) throw "Player document not found";
+                    
+                    const currentInventory = playerDoc.data().inventory;
+                    if ((currentInventory[resourceName] || 0) < amount) {
+                        throw `Not enough ${resourceInput} to contribute.`;
+                    }
+                    
+                    transaction.update(playerDocRef, {
+                        [`inventory.${resourceName}`]: increment(-amount),
+                        'coins': increment(amount), 'reputation': increment(repGain)
+                    });
+                    transaction.update(townDocRef, { [`treasury.${resourceName}`]: increment(amount) });
+                });
+
+                logToGame(`You contributed ${amount} ${resourceInput}, receiving ${amount} coins and ${repGain} reputation.`);
+                document.getElementById('resource-name-input').value = '';
+                document.getElementById('resource-amount-input').value = '';
+
+            } catch (e) {
+                console.error("Transaction failed: ", e);
+                logToGame(`Error contributing: ${e.message || e}`);
+            }
+        });
+        
+        // --- PANE SWITCHING ---
+        function setupNavListeners() {
+            const leftNavBtns = {
+                'info': document.getElementById('show-info-btn'),
+                'skills': document.getElementById('show-skills-btn'),
+                'inventory': document.getElementById('show-inventory-btn'),
+            };
+            const rightNavBtns = {
+                'skills-missions': document.getElementById('show-skills-missions-btn'),
+                'combat-missions': document.getElementById('show-combat-missions-btn'),
+                'crafting': document.getElementById('show-crafting-btn'),
+                'map': document.getElementById('show-map-btn'),
+            };
+            const leftPanes = {
+                'info': document.getElementById('player-info-pane'),
+                'skills': document.getElementById('skills-pane'),
+                'inventory': document.getElementById('inventory-pane'),
+            };
+            const rightPanes = {
+                'skills-missions': document.getElementById('skills-mission-pane'),
+                'combat-missions': document.getElementById('combat-mission-pane'),
+                'crafting': document.getElementById('crafting-pane'),
+                'map': document.getElementById('map-pane'),
+            };
+
+            Object.entries(leftNavBtns).forEach(([key, btn]) => btn.addEventListener('click', () => showPane(key, leftNavBtns, leftPanes)));
+            Object.entries(rightNavBtns).forEach(([key, btn]) => btn.addEventListener('click', () => showPane(key, rightNavBtns, rightPanes)));
+
+            function showPane(paneKey, btnGroup, paneGroup) {
+                Object.values(btnGroup).forEach(btn => btn.classList.remove('active'));
+                btnGroup[paneKey].classList.add('active');
+                
+                Object.values(paneGroup).forEach(pane => pane.classList.add('hidden'));
+                paneGroup[paneKey].classList.remove('hidden');
+            }
+        }
+
+        // --- UTILITY FUNCTIONS ---
+        function capitalize(s) {
+            if (typeof s !== 'string') return ''
+            return s.charAt(0).toUpperCase() + s.slice(1)
+        }
+
+        // --- START THE GAME ---
+        authenticate();
+    </script>
+</body>
+</html>

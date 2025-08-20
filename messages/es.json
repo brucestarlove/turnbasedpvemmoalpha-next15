@@ -5,5 +5,21 @@
     "subtitle": "Una plantilla de inicio de Next.js, repleta de funciones como TypeScript, Tailwind CSS, Next-auth, Eslint, Stripe, herramientas de prueba y más. Inicia tu proyecto con eficiencia y estilo.",
     "playButton": "Play",
     "aboutButton": "About"
+  },
+  "about": {
+    "title": "Acerca de Starscape",
+    "subtitle": "Un MMO PvE por turnos que te lleva en un viaje épico a través del cosmos.",
+    "visionTitle": "Nuestra Visión",
+    "visionText1": "Starscape es más que un juego—es una aventura que abarca galaxias. Hemos creado un universo donde la estrategia se encuentra con la narrativa, donde cada decisión moldea tu viaje a través de las estrellas.",
+    "visionText2": "Nuestro equipo está apasionado por crear experiencias inmersivas que reúnan a los jugadores en un universo compartido de exploración y descubrimiento.",
+    "featuresTitle": "Características del Juego",
+    "feature1": "Combate estratégico por turnos",
+    "feature2": "Vasto universo para explorar",
+    "feature3": "Progresión y personalización de personajes",
+    "feature4": "Experiencias PvE multijugador",
+    "feature5": "Rica narrativa y lore",
+    "joinTitle": "Únete a la Aventura",
+    "joinText": "¿Listo para embarcarte en tu viaje cósmico? Inicia sesión para comenzar a jugar y experimentar el universo de Starscape.",
+    "startJourney": "Comienza tu Viaje"
   }
 }
