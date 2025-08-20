@@ -34,7 +34,7 @@ const HomePage = async () => {
           {session ? (
             <>
               <Link
-                href="#"
+                href="/game"
                 className={buttonVariants({ variant: "starlight", size: "lg" })}
               >
                 <Icons.play className="mr-2 h-4 w-4" />
