@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
 
 import { AuthControls } from "@/components/auth-controls";
 import { Icons } from "@/components/icons";
@@ -9,7 +8,6 @@ import { auth } from "@/lib/auth";
 
 const HomePage = async () => {
   const session = await auth();
-  const t = await getTranslations("home");
 
   return (
     <>
@@ -25,20 +23,20 @@ const HomePage = async () => {
       </header>
       <section className="container mt-10 flex flex-col items-center gap-3 text-center md:absolute md:top-1/2 md:left-1/2 md:mt-0 md:-translate-x-1/2 md:-translate-y-1/2">
         <h1 className="mb-1 font-mono text-4xl leading-tight font-extrabold tracking-tighter [word-spacing:-0.5rem] md:text-5xl">
-          <span className="text-starlight">Starscape</span> starter template
+          <span className="text-starlight">Turn-based PvE MMO</span> alpha
         </h1>
         <p className="text-muted-foreground max-w-2xl md:text-lg">
-          {t("subtitle")}
+          game experiment with my Next15 template
         </p>
         <div className="mt-2 flex gap-4">
           {session ? (
             <>
               <Link
-                href="#"
+                href="/game"
                 className={buttonVariants({ variant: "starlight", size: "lg" })}
               >
                 <Icons.play className="mr-2 h-4 w-4" />
-                {t("playButton")}
+                Play Game
               </Link>
               <StripeButton />
             </>
@@ -55,7 +53,7 @@ const HomePage = async () => {
             href="/about"
             className={buttonVariants({ variant: "glass", size: "lg" })}
           >
-            <Icons.info /> {t("aboutButton")}
+            <Icons.info /> About
           </Link>
         </div>
       </section>

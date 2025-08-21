@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { Session } from "next-auth";
 import { signIn, signOut } from "next-auth/react";
-import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 
@@ -12,8 +11,6 @@ type AuthControlsProps = {
 };
 
 export const AuthControls = ({ session }: AuthControlsProps) => {
-  const t = useTranslations("home");
-
   if (!session)
     return (
       <Button
@@ -21,7 +18,7 @@ export const AuthControls = ({ session }: AuthControlsProps) => {
         className="cursor-pointer"
         onClick={async () => await signIn("github")}
       >
-        {t("signIn")}
+        Sign In
       </Button>
     );
 
@@ -41,7 +38,7 @@ export const AuthControls = ({ session }: AuthControlsProps) => {
         className="cursor-pointer"
         onClick={async () => await signOut()}
       >
-        {t("signOut")}
+        Sign Out
       </Button>
     </>
   );

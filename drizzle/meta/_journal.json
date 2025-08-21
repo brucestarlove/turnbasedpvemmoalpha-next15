@@ -15,6 +15,13 @@
       "when": 1749407322022,
       "tag": "0001_small_sabra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1755728215022,
+      "tag": "0002_soft_flatman",
+      "breakpoints": true
     }
   ]
 }

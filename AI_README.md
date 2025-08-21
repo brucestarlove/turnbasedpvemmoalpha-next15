@@ -33,10 +33,6 @@ src/
 │   └── env.mjs                  # Environment validation
 ├── actions/                     # Server Actions
 │   └── create-checkout-session.ts # Stripe checkout
-├── i18n/                        # Internationalization
-│   ├── navigation.ts            # Route translations
-│   ├── request.ts               # Language detection
-│   └── routing.ts               # i18n routing config
 └── styles/                      # Global styles
     └── globals.css              # Tailwind CSS imports
 ```
@@ -51,7 +47,7 @@ src/
 ├── messages/                    # i18n translation files
 │   ├── en.json                  # English translations
 │   └── es.json                  # Spanish translations
-└── middleware.ts                # Next.js middleware (i18n)
+└── middleware.ts                # Next.js middleware
 ```
 
 ### Testing & Quality
@@ -76,7 +72,6 @@ src/
 - ✅ Stripe subscription management
 - ✅ User authentication & roles
 - ✅ Database schema for users/accounts
-- ✅ i18n for global markets
 - ✅ Dark mode for professional UI
 
 **Suggested Additions:**
@@ -101,7 +96,6 @@ src/
 **Key Features to Leverage:**
 - ✅ User authentication & profiles
 - ✅ Database schema for social features
-- ✅ i18n for global communities
 - ✅ Responsive design
 
 **Suggested Additions:**
@@ -128,7 +122,6 @@ src/
 - ✅ Stripe payment processing
 - ✅ User accounts & orders
 - ✅ Database for products/orders
-- ✅ i18n for international sales
 
 **Suggested Additions:**
 ```
@@ -154,7 +147,6 @@ src/
 - ✅ User authentication & profiles
 - ✅ Database for games/users
 - ✅ Dark mode for gaming aesthetic
-- ✅ i18n for global gaming community
 
 **Suggested Additions:**
 ```
@@ -179,7 +171,6 @@ src/
 **Key Features to Leverage:**
 - ✅ Responsive design
 - ✅ Dark mode toggle
-- ✅ i18n for multilingual content
 - ✅ SEO optimization
 
 **Suggested Additions:**
@@ -205,7 +196,6 @@ src/
 **Key Features to Leverage:**
 - ✅ User authentication & progress tracking
 - ✅ Database for courses/users
-- ✅ i18n for global education
 - ✅ Responsive design for mobile learning
 
 **Suggested Additions:**
