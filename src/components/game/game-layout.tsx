@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { resetGameData } from "@/actions/game-actions";
 import { ActionPanel } from "@/components/game/action-panel";
@@ -12,7 +12,16 @@ import { SkillsPanel } from "@/components/game/skills-panel";
 import { TownPanel } from "@/components/game/town-panel";
 import { Icons } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
-import { useGameState } from "@/hooks/use-game-state";
+import { useClientOnly } from "@/hooks/use-client-only";
+import {
+  useGameActions,
+  useGameError,
+  useGameLoading,
+  useGameLogs,
+  useGameStore,
+  usePlayer,
+  useTown,
+} from "@/stores/game-store";
 
 type GameLayoutProps = {
   userId: string;
@@ -33,8 +42,30 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
     useState<ActivePane>("skills-missions");
   const [isResetting, setIsResetting] = useState(false);
 
-  const { playerData, townData, gameLogs, isLoading, error, refreshData } =
-    useGameState(userId);
+  // Client-side only to prevent SSR issues
+  const isClient = useClientOnly();
+
+  // Always call hooks (Rules of Hooks), but use fallbacks during SSR
+  const player = usePlayer();
+  const town = useTown();
+  const logs = useGameLogs();
+  const isLoading = useGameLoading();
+  const error = useGameError();
+  const gameActions = useGameActions();
+
+  // Use client-side data or fallbacks
+  const safePlayer = isClient ? player : null;
+  const safeTown = isClient ? town : null;
+  const safeLogs = isClient ? logs : [];
+  const safeIsLoading = isClient ? isLoading : true;
+  const safeError = isClient ? error : null;
+
+  // Initialize game on mount - only on client
+  useEffect(() => {
+    if (isClient && userId && gameActions) {
+      gameActions.initializeGame(userId);
+    }
+  }, [isClient, userId, gameActions]);
 
   const handleReset = async () => {
     if (
@@ -48,6 +79,10 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
     setIsResetting(true);
     try {
       await resetGameData(userId);
+      // Refresh game data after reset
+      if (gameActions) {
+        await gameActions.refreshGameData(userId);
+      }
     } catch (error) {
       console.error("Failed to reset game data:", error);
     } finally {
@@ -55,7 +90,10 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
     }
   };
 
-  if (isLoading) {
+  // Refresh function for child components
+  const refreshData = () => gameActions?.refreshGameData(userId);
+
+  if (safeIsLoading) {
     return (
       <div className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
         <div className="text-center">
@@ -66,11 +104,13 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
     );
   }
 
-  if (error) {
+  if (safeError) {
     return (
       <div className="container mx-auto p-4">
         <div className="text-center">
-          <p className="text-destructive">Error loading game data: {error}</p>
+          <p className="text-destructive">
+            Error loading game data: {safeError}
+          </p>
           <Link
             href="/"
             className={buttonVariants({
@@ -96,7 +136,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
           <div className="flex items-center gap-2">
             <CooldownTimer
               userId={userId}
-              playerData={playerData}
+              playerData={safePlayer}
               onRefresh={refreshData}
             />
             <button
@@ -177,7 +217,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             <Icons.clipboard className="h-5 w-5" />
           </button>
 
-          {townData?.unlockedMissions?.includes("m103") && (
+          {safeTown?.unlockedMissions?.includes("m103") && (
             <button
               onClick={() => setActiveRightPane("combat-missions")}
               className={`nav-btn hover:bg-accent rounded-md p-2 transition-all ${
@@ -191,7 +231,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             </button>
           )}
 
-          {townData?.upgrades?.crafting_station_unlocked && (
+          {safeTown?.upgrades?.crafting_station_unlocked && (
             <button
               onClick={() => setActiveRightPane("crafting")}
               className={`nav-btn hover:bg-accent rounded-md p-2 transition-all ${
@@ -205,7 +245,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             </button>
           )}
 
-          {townData?.upgrades?.map_unlocked && (
+          {safeTown?.upgrades?.map_unlocked && (
             <button
               onClick={() => setActiveRightPane("map")}
               className={`nav-btn hover:bg-accent rounded-md p-2 transition-all ${
@@ -225,13 +265,9 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
           {/* Left Column: Player Info & Town */}
           <div className="space-y-4 md:col-span-1">
             {/* Player Panel */}
-            {activeLeftPane === "info" && (
-              <PlayerPanel playerData={playerData} />
-            )}
+            {activeLeftPane === "info" && <PlayerPanel />}
 
-            {activeLeftPane === "skills" && (
-              <SkillsPanel playerData={playerData} />
-            )}
+            {activeLeftPane === "skills" && <SkillsPanel />}
 
             {activeLeftPane === "inventory" && (
               <div className="bg-card/50 rounded-lg border p-4 shadow-lg backdrop-blur-sm">
@@ -239,9 +275,9 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
                   Inventory
                 </h2>
                 <div className="h-64 space-y-1 overflow-y-auto text-sm">
-                  {playerData?.inventory &&
-                  Object.keys(playerData.inventory).length > 0 ? (
-                    Object.entries(playerData.inventory).map(
+                  {safePlayer?.inventory &&
+                  Object.keys(safePlayer.inventory).length > 0 ? (
+                    Object.entries(safePlayer.inventory).map(
                       ([item, quantity]) => (
                         <p key={item}>
                           {item
@@ -262,8 +298,8 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
 
             {/* Town Panel */}
             <TownPanel
-              townData={townData}
-              playerData={playerData}
+              townData={safeTown}
+              playerData={safePlayer}
               userId={userId}
               onRefresh={refreshData}
             />
@@ -274,14 +310,14 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             {/* Action Panel */}
             <ActionPanel
               activePane={activeRightPane}
-              playerData={playerData}
-              townData={townData}
+              playerData={safePlayer}
+              townData={safeTown}
               userId={userId}
               onRefresh={refreshData}
             />
 
             {/* Game Log */}
-            <GameLogPanel logs={gameLogs} isLoading={isLoading} />
+            <GameLogPanel logs={safeLogs} isLoading={safeIsLoading} />
           </div>
         </div>
       </div>

@@ -215,7 +215,7 @@ export const GameLogPanel = ({
       {logs.length > 0 && (
         <div className="border-border/50 mt-3 border-t pt-3">
           <p className="text-muted-foreground text-center text-xs">
-            Auto-refreshes every 5 seconds • Scroll up to pause auto-scroll
+            Auto-refreshes every 5 seconds • Scroll down to pause auto-scroll
           </p>
         </div>
       )}

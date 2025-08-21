@@ -1,14 +1,25 @@
 "use client";
 
+import { SkillsSection } from "@/components/game/skills";
 import { Icons } from "@/components/icons";
-import type { Player } from "@/lib/schema";
+import { useClientOnly } from "@/hooks/use-client-only";
+import { getSkillsByCategory, SKILL_CATEGORIES } from "@/lib/skills-config";
+import { usePlayer, usePlayerSkills } from "@/stores/game-store";
 
 type PlayerPanelProps = {
-  playerData: Player | null;
+  playerData?: never; // Deprecated - using Zustand store instead
 };
 
-export const PlayerPanel = ({ playerData }: PlayerPanelProps) => {
-  if (!playerData) {
+export const PlayerPanel = ({}: PlayerPanelProps) => {
+  const isClient = useClientOnly();
+  const player = usePlayer();
+  const playerSkills = usePlayerSkills();
+
+  // Use safe values for SSR
+  const safePlayer = isClient ? player : null;
+  const safePlayerSkills = isClient ? playerSkills : {};
+
+  if (!safePlayer) {
     return (
       <div className="bg-card/50 rounded-lg border p-4 shadow-lg backdrop-blur-sm">
         <h2 className="border-border mb-2 flex items-center gap-2 border-b pb-2 text-xl font-bold">
@@ -37,14 +48,14 @@ export const PlayerPanel = ({ playerData }: PlayerPanelProps) => {
               <div className="h-2 w-2 rounded-full bg-yellow-400"></div>
               <span className="text-sm">Coins:</span>
               <span className="font-bold text-yellow-400">
-                {playerData.coins.toLocaleString()}
+                {safePlayer.coins.toLocaleString()}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-400"></div>
               <span className="text-sm">Rep:</span>
               <span className="font-bold text-green-400">
-                {playerData.reputation}
+                {safePlayer.reputation}
               </span>
             </div>
           </div>
@@ -60,139 +71,42 @@ export const PlayerPanel = ({ playerData }: PlayerPanelProps) => {
             <div className="flex justify-between">
               <span>Strength:</span>
               <span className="font-medium text-red-400">
-                {playerData.strength}
+                {safePlayer.strength}
               </span>
             </div>
             <div className="flex justify-between">
               <span>Stamina:</span>
               <span className="font-medium text-blue-400">
-                {playerData.stamina}
+                {safePlayer.stamina}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Skills Section */}
-        <div className="bg-background/30 rounded-lg border p-3">
-          <h3 className="mb-2 flex items-center gap-2 text-base font-semibold">
-            <Icons.sword className="h-4 w-4 text-purple-400" />
-            Combat Skills
-          </h3>
-          <div className="space-y-1 text-xs">
-            {[
-              { key: "unarmed", name: "Unarmed", icon: "👊" },
-              { key: "weapons", name: "Weapons", icon: "⚔️" },
-              { key: "archery", name: "Archery", icon: "🏹" },
-              { key: "traps", name: "Traps", icon: "🪤" },
-            ].map((skill) => {
-              const skillData =
-                playerData.skills?.[
-                  skill.key as keyof typeof playerData.skills
-                ];
-              return (
-                <div
-                  key={skill.key}
-                  className="flex items-center justify-between"
-                >
-                  <span className="flex items-center gap-1">
-                    <span>{skill.icon}</span>
-                    {skill.name}:
-                  </span>
-                  <div className="font-medium text-cyan-400">
-                    Lv.{skillData?.level || 1}
-                    <span className="text-muted-foreground ml-1">
-                      ({skillData?.xp || 0} xp)
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* Combat Skills */}
+        <SkillsSection
+          category="combat"
+          skills={getSkillsByCategory("combat")}
+          playerSkills={safePlayerSkills}
+          variant="compact"
+        />
 
-        {/* Gathering Skills Section */}
-        <div className="bg-background/30 rounded-lg border p-3">
-          <h3 className="mb-2 flex items-center gap-2 text-base font-semibold">
-            <Icons.package className="h-4 w-4 text-green-400" />
-            Gathering Skills
-          </h3>
-          <div className="space-y-1 text-xs">
-            {[
-              { key: "fishing", name: "Fishing", icon: "🎣" },
-              { key: "foraging", name: "Foraging", icon: "🍄" },
-              { key: "hunting", name: "Hunting", icon: "🦌" },
-              { key: "mining", name: "Mining", icon: "⛏️" },
-              { key: "woodcutting", name: "Woodcutting", icon: "🪓" },
-            ].map((skill) => {
-              const skillData =
-                playerData.skills?.[
-                  skill.key as keyof typeof playerData.skills
-                ];
-              return (
-                <div
-                  key={skill.key}
-                  className="flex items-center justify-between"
-                >
-                  <span className="flex items-center gap-1">
-                    <span>{skill.icon}</span>
-                    {skill.name}:
-                  </span>
-                  <div className="font-medium text-emerald-400">
-                    Lv.{skillData?.level || 1}
-                    <span className="text-muted-foreground ml-1">
-                      ({skillData?.xp || 0} xp)
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Production Skills Section */}
-        <div className="bg-background/30 rounded-lg border p-3">
-          <h3 className="mb-2 flex items-center gap-2 text-base font-semibold">
-            <Icons.hammer className="h-4 w-4 text-orange-400" />
-            Production Skills
-          </h3>
-          <div className="space-y-1 text-xs">
-            {[
-              { key: "crafting", name: "Crafting", icon: "🔨" },
-              { key: "cooking", name: "Cooking", icon: "👨‍🍳" },
-            ].map((skill) => {
-              const skillData =
-                playerData.skills?.[
-                  skill.key as keyof typeof playerData.skills
-                ];
-              return (
-                <div
-                  key={skill.key}
-                  className="flex items-center justify-between"
-                >
-                  <span className="flex items-center gap-1">
-                    <span>{skill.icon}</span>
-                    {skill.name}:
-                  </span>
-                  <div className="font-medium text-orange-400">
-                    Lv.{skillData?.level || 1}
-                    <span className="text-muted-foreground ml-1">
-                      ({skillData?.xp || 0} xp)
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* Gathering Skills */}
+        <SkillsSection
+          category="gathering"
+          skills={getSkillsByCategory("gathering")}
+          playerSkills={safePlayerSkills}
+          variant="compact"
+        />
 
         {/* Current Status */}
-        {playerData.currentMission && (
+        {safePlayer.currentMission && (
           <div className="from-starlight/20 to-cosmic/20 border-starlight/30 rounded-lg border bg-gradient-to-r p-3">
             <h3 className="text-starlight mb-1 text-base font-semibold">
               Current Mission
             </h3>
             <p className="text-foreground/90 text-sm">
-              {playerData.currentMission.name}
+              {safePlayer.currentMission.name}
             </p>
           </div>
         )}

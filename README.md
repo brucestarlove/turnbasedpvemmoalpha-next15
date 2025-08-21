@@ -1,5 +1,6 @@
-# my new/current Nextjs stack im iterating
-_check out AI_README.md too_
+# a goofy attempt of vibecoding an app in Gemini and trying to import it into a Nextjs structure without proper game architecture
+
+random journey. learned some things along the way.
 
 <p align="center">
   <a href="#-features"><strong>Features</strong></a> ·
