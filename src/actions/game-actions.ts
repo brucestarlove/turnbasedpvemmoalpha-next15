@@ -2,17 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 
-import { dbApi } from "@/lib/db-api";
 import {
   ALL_MISSIONS_POOL,
   COOLDOWN_MS,
   getCurrentObjective,
 } from "@/lib/game-config";
+import { getGameRepository } from "@/lib/repositories";
+
+// Get the appropriate repository based on environment
+const repository = getGameRepository();
 
 // Batched initialization - replaces individual init functions
 export async function initializeGame(userId: string) {
   try {
-    const result = await dbApi.batch.initializeGame(userId);
+    const result = await repository.batch.initializeGame(userId);
     return result;
   } catch (error) {
     console.error("Failed to initialize game:", error);
@@ -23,8 +26,8 @@ export async function initializeGame(userId: string) {
 // Batched game state fetch - reduces multiple GET requests
 export async function getGameState(userId: string) {
   try {
-    const gameState = await dbApi.batch.getGameState(userId);
-    return { success: true, data: gameState };
+    const result = await repository.batch.getGameState(userId);
+    return result;
   } catch (error) {
     console.error("Failed to get game state:", error);
     return { success: false, error: "Failed to get game state" };
@@ -34,13 +37,13 @@ export async function getGameState(userId: string) {
 // Initialize player data for new users
 export async function initializePlayer(userId: string) {
   try {
-    const existingPlayer = await dbApi.player.findById(userId);
+    const existingPlayer = await repository.player.findById(userId);
 
     if (!existingPlayer) {
-      await dbApi.player.create(userId);
+      await repository.player.create(userId);
 
       // Add welcome log entry
-      await dbApi.gameLog.create({
+      await repository.gameLog.create({
         playerId: userId,
         message: "Welcome to Starscape! Your journey begins.",
         type: "system",
@@ -57,10 +60,10 @@ export async function initializePlayer(userId: string) {
 // Initialize town data
 export async function initializeTown() {
   try {
-    const existingTown = await dbApi.town.find();
+    const existingTown = await repository.town.find();
 
     if (!existingTown) {
-      await dbApi.town.create();
+      await repository.town.create();
     }
 
     return { success: true };
@@ -73,7 +76,7 @@ export async function initializeTown() {
 // Get player data
 export async function getPlayerData(userId: string) {
   try {
-    const player = await dbApi.player.findById(userId);
+    const player = await repository.player.findById(userId);
 
     if (!player) {
       return { success: false, error: "Player not found" };
@@ -89,7 +92,7 @@ export async function getPlayerData(userId: string) {
 // Get town data
 export async function getTownData() {
   try {
-    const town = await dbApi.town.find();
+    const town = await repository.town.find();
 
     if (!town) {
       return { success: false, error: "Town not found" };
@@ -109,18 +112,18 @@ export async function startMission(
   combatSkill?: string,
 ) {
   try {
-    const player = await dbApi.player.findById(userId);
+    const player = await repository.player.findById(userId);
 
     if (!player) {
       return { success: false, error: "Player not found" };
     }
 
-    const now = Date.now();
-    const lastAction = player.lastActionTimestamp?.getTime() || 0;
-
-    if (now - lastAction < COOLDOWN_MS) {
-      return { success: false, error: "Action is still on cooldown" };
-    }
+    // Cooldown disabled
+    // const now = Date.now();
+    // const lastAction = player.lastActionTimestamp?.getTime() || 0;
+    // if (now - lastAction < COOLDOWN_MS) {
+    //   return { success: false, error: "Action is still on cooldown" };
+    // }
 
     if (player.currentMission) {
       return { success: false, error: "Already on a mission" };
@@ -137,10 +140,10 @@ export async function startMission(
     }
 
     // Update player with new mission
-    await dbApi.player.updateMission(userId, mission);
+    await repository.player.updateMission(userId, mission);
 
     // Add log entry
-    await dbApi.gameLog.create({
+    await repository.gameLog.create({
       playerId: userId,
       message: `You have started: ${mission.name}.`,
       type: "action",
@@ -157,7 +160,7 @@ export async function startMission(
 // Resolve a mission (called when cooldown expires)
 export async function resolveMission(userId: string) {
   try {
-    const player = await dbApi.player.findById(userId);
+    const player = await repository.player.findById(userId);
 
     if (!player || !player.currentMission) {
       return { success: false, error: "No active mission" };
@@ -216,7 +219,7 @@ export async function resolveMission(userId: string) {
     }
 
     // Update player data by reading current values and incrementing
-    const currentPlayer = await dbApi.player.findById(userId);
+    const currentPlayer = await repository.player.findById(userId);
 
     if (!currentPlayer) {
       throw new Error("Player not found");
@@ -243,9 +246,9 @@ export async function resolveMission(userId: string) {
       // Level up logic
       while (
         newSkills[mission.skill].xp >=
-        newSkills[mission.skill].level * 100
+        newSkills[mission.skill].level * 10
       ) {
-        newSkills[mission.skill].xp -= newSkills[mission.skill].level * 100;
+        newSkills[mission.skill].xp -= newSkills[mission.skill].level * 10;
         newSkills[mission.skill].level += 1;
       }
     }
@@ -254,7 +257,7 @@ export async function resolveMission(userId: string) {
       ? (currentPlayer.missionsCompleted || 0) + 1
       : currentPlayer.missionsCompleted;
 
-    await dbApi.player.completeMission(userId, {
+    await repository.player.completeMission(userId, {
       coins: newCoins,
       inventory: newInventory,
       skills: newSkills,
@@ -263,25 +266,25 @@ export async function resolveMission(userId: string) {
 
     // Update town slay counts if this was a combat mission
     if (isSuccessfulAction && mission.type === "combat" && mission.enemy) {
-      const town = await dbApi.town.find();
+      const town = await repository.town.find();
       if (town) {
         const newSlayCounts = { ...town.slayCounts };
         newSlayCounts[mission.enemy] = (newSlayCounts[mission.enemy] || 0) + 1;
 
-        await dbApi.town.updateSlayCounts(town.id, newSlayCounts);
+        await repository.town.updateSlayCounts(town.id, newSlayCounts);
       }
     }
 
     // Unlock combat missions after first mission completion
     if (isSuccessfulAction && (currentPlayer.missionsCompleted || 0) === 0) {
-      const town = await dbApi.town.find();
+      const town = await repository.town.find();
       if (town && !(town.unlockedMissions || []).includes("m103")) {
         const newUnlockedMissions = [...(town.unlockedMissions || []), "m103"];
 
-        await dbApi.town.unlockMissions(town.id, newUnlockedMissions);
+        await repository.town.unlockMissions(town.id, newUnlockedMissions);
 
         // Add log entry
-        await dbApi.gameLog.create({
+        await repository.gameLog.create({
           playerId: "system",
           message:
             "🐺 A dangerous wolf has been spotted nearby! The Combat Mission Board is now available.",
@@ -291,7 +294,7 @@ export async function resolveMission(userId: string) {
     }
 
     // Add log entry
-    await dbApi.gameLog.create({
+    await repository.gameLog.create({
       playerId: userId,
       message: resultsText,
       type: "action",
@@ -321,7 +324,7 @@ export async function contributeToTown(
   amount: number,
 ) {
   try {
-    const player = await dbApi.player.findById(userId);
+    const player = await repository.player.findById(userId);
 
     if (!player) {
       return { success: false, error: "Player not found" };
@@ -341,23 +344,23 @@ export async function contributeToTown(
     const newInventory = { ...currentInventory };
     newInventory[resourceName] = (newInventory[resourceName] || 0) - amount;
 
-    await dbApi.player.contributeResources(userId, {
+    await repository.player.contributeResources(userId, {
       inventory: newInventory,
       coins: (player.coins || 0) + amount,
       reputation: (player.reputation || 0) + repGain,
     });
 
     // Update town treasury
-    const town = await dbApi.town.find();
+    const town = await repository.town.find();
     if (town) {
       const newTreasury = { ...town.treasury };
       newTreasury[resourceName] = (newTreasury[resourceName] || 0) + amount;
 
-      await dbApi.town.updateTreasury(town.id, newTreasury);
+      await repository.town.updateTreasury(town.id, newTreasury);
     }
 
     // Add log entry
-    await dbApi.gameLog.create({
+    await repository.gameLog.create({
       playerId: userId,
       message: `You contributed ${amount} ${resourceName}, receiving ${amount} coins and ${repGain} reputation.`,
       type: "action",
@@ -377,7 +380,7 @@ export async function contributeToTown(
 // Get game logs for a player
 export async function getGameLogs(userId: string, limit = 30) {
   try {
-    const logs = await dbApi.gameLog.findMany({
+    const logs = await repository.gameLog.findMany({
       playerId: userId,
       limit,
     });
@@ -394,19 +397,19 @@ export async function getGameLogs(userId: string, limit = 30) {
 export async function resetGameData(userId: string) {
   try {
     // Reset player data
-    await dbApi.player.reset(userId);
+    await repository.player.reset(userId);
 
     // Reset town data
-    const town = await dbApi.town.find();
+    const town = await repository.town.find();
     if (town) {
-      await dbApi.town.reset(town.id);
+      await repository.town.reset(town.id);
     }
 
     // Clear game logs for this user
-    await dbApi.gameLog.deleteByPlayer(userId);
+    await repository.gameLog.deleteByPlayer(userId);
 
     // Add welcome log entry
-    await dbApi.gameLog.create({
+    await repository.gameLog.create({
       playerId: userId,
       message: "Game data reset! Welcome back to Starscape.",
       type: "system",
@@ -423,7 +426,7 @@ export async function resetGameData(userId: string) {
 // Check and complete town objectives
 export async function checkAndCompleteObjectives() {
   try {
-    const town = await dbApi.town.find();
+    const town = await repository.town.find();
     if (!town) {
       return { success: false, error: "Town not found" };
     }
@@ -481,7 +484,7 @@ export async function checkAndCompleteObjectives() {
         updateData.upgrades = newUpgrades;
       }
 
-      await dbApi.town.completeObjective(town.id, updateData);
+      await repository.town.completeObjective(town.id, updateData);
 
       // Add log entries about the completion
       const systemLogs = [
@@ -502,8 +505,27 @@ export async function checkAndCompleteObjectives() {
         });
       }
 
+      if (currentObjective.unlocks.missions) {
+        currentObjective.unlocks.missions.forEach((mission) => {
+          if (mission === "m103") {
+            systemLogs.push({
+              playerId: "system",
+              message:
+                "🐺 A dangerous wolf has been spotted nearby! The Combat Mission Board is now available.",
+              type: "system",
+            });
+          } else {
+            systemLogs.push({
+              playerId: "system",
+              message: `🎯 New Mission Unlocked: ${ALL_MISSIONS_POOL[mission]?.name || mission}`,
+              type: "system",
+            });
+          }
+        });
+      }
+
       // Insert all log entries
-      await dbApi.gameLog.createMany(systemLogs);
+      await repository.gameLog.createMany(systemLogs);
 
       revalidatePath("/game");
       return {

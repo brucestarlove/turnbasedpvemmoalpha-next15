@@ -177,7 +177,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             <Icons.clipboard className="h-5 w-5" />
           </button>
 
-          {(playerData?.missionsCompleted || 0) > 0 && (
+          {townData?.unlockedMissions?.includes("m103") && (
             <button
               onClick={() => setActiveRightPane("combat-missions")}
               className={`nav-btn hover:bg-accent rounded-md p-2 transition-all ${
@@ -205,18 +205,19 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             </button>
           )}
 
-          <button
-            onClick={() => setActiveRightPane("map")}
-            className={`nav-btn hover:bg-accent rounded-md p-2 transition-all ${
-              activeRightPane === "map"
-                ? "bg-accent text-accent-foreground"
-                : ""
-            }`}
-            title="Map"
-            disabled={!townData?.upgrades?.map_unlocked}
-          >
-            <Icons.map className="h-5 w-5" />
-          </button>
+          {townData?.upgrades?.map_unlocked && (
+            <button
+              onClick={() => setActiveRightPane("map")}
+              className={`nav-btn hover:bg-accent rounded-md p-2 transition-all ${
+                activeRightPane === "map"
+                  ? "bg-accent text-accent-foreground"
+                  : ""
+              }`}
+              title="Map"
+            >
+              <Icons.map className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {/* Main Content Area */}

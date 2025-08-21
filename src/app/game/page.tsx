@@ -12,6 +12,7 @@ const GamePage = async () => {
   }
 
   // Initialize game data (player, town, logs) in one batched call
+  console.log("Your user ID:", session.user.id);
   await initializeGame(session.user.id);
 
   return (

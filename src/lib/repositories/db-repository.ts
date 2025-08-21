@@ -1,33 +1,32 @@
-// Database API - Clean interface for all game database operations
-import { CACHE_KEYS, gameCache } from "./cache";
-import { dbWrapper } from "./db-wrapper";
+import { CACHE_KEYS, gameCache } from "../cache";
+import { dbWrapper } from "../db-wrapper";
 import {
   DEFAULT_INVENTORY,
   DEFAULT_SKILLS,
   DEFAULT_TOWN_UPGRADES,
-} from "./game-config";
-import type { ApiResponse, GameLog, GameState, Player, Town } from "./types";
+} from "../game-config";
+import type {
+  ApiResponse,
+  GameLog,
+  GameState,
+  MissionUpdate,
+  Player,
+  PlayerUpdate,
+  Town,
+  TownUpdate,
+} from "../types";
+import {
+  IGameDataRepository,
+  IGameLogRepository,
+  IPlayerRepository,
+  ITownRepository,
+  IUtilRepository,
+  NotFoundError,
+  RepositoryError,
+} from "./interfaces";
 
-// Custom error classes
-class DatabaseError extends Error {
-  constructor(
-    message: string,
-    public cause?: unknown,
-  ) {
-    super(message);
-    this.name = "DatabaseError";
-  }
-}
-
-class NotFoundError extends DatabaseError {
-  constructor(resource: string, id: string) {
-    super(`${resource} with id '${id}' not found`);
-    this.name = "NotFoundError";
-  }
-}
-
-// Player operations
-export const playerApi = {
+// Database-backed player repository
+class DbPlayerRepository implements IPlayerRepository {
   async findById(userId: string): Promise<Player | null> {
     try {
       // Check cache first
@@ -45,9 +44,9 @@ export const playerApi = {
 
       return player;
     } catch (error) {
-      throw new DatabaseError(`Failed to find player ${userId}`, error);
+      throw new RepositoryError(`Failed to find player ${userId}`, error);
     }
-  },
+  }
 
   async findByIdOrThrow(userId: string): Promise<Player> {
     const player = await this.findById(userId);
@@ -55,11 +54,11 @@ export const playerApi = {
       throw new NotFoundError("Player", userId);
     }
     return player;
-  },
+  }
 
   async create(userId: string): Promise<Player> {
     try {
-      return await dbWrapper.players.insert({
+      const player = await dbWrapper.players.insert({
         id: userId,
         strength: 5,
         stamina: 5,
@@ -71,12 +70,19 @@ export const playerApi = {
         lastActionTimestamp: new Date(0),
         currentMission: null,
       });
-    } catch (error) {
-      throw new DatabaseError(`Failed to create player ${userId}`, error);
-    }
-  },
 
-  async update(userId: string, data: Partial<Player>): Promise<Player | null> {
+      // Cache the new player
+      if (player) {
+        gameCache.set(CACHE_KEYS.PLAYER(userId), player, 30000);
+      }
+
+      return player;
+    } catch (error) {
+      throw new RepositoryError(`Failed to create player ${userId}`, error);
+    }
+  }
+
+  async update(userId: string, data: PlayerUpdate): Promise<Player | null> {
     try {
       const result = await dbWrapper.players.update({ id: userId }, data);
 
@@ -90,9 +96,9 @@ export const playerApi = {
 
       return result;
     } catch (error) {
-      throw new DatabaseError(`Failed to update player ${userId}`, error);
+      throw new RepositoryError(`Failed to update player ${userId}`, error);
     }
-  },
+  }
 
   async updateMission(userId: string, mission: any): Promise<void> {
     try {
@@ -103,19 +109,20 @@ export const playerApi = {
           currentMission: mission,
         },
       );
+
+      // Invalidate cache
+      gameCache.delete(CACHE_KEYS.PLAYER(userId));
     } catch (error) {
-      throw new DatabaseError(`Failed to update mission for ${userId}`, error);
+      throw new RepositoryError(
+        `Failed to update mission for ${userId}`,
+        error,
+      );
     }
-  },
+  }
 
   async completeMission(
     userId: string,
-    updates: {
-      coins?: number;
-      inventory?: Record<string, number>;
-      skills?: Record<string, { level: number; xp: number }>;
-      missionsCompleted?: number;
-    },
+    updates: MissionUpdate,
   ): Promise<Player> {
     try {
       const result = await dbWrapper.players.update(
@@ -136,14 +143,13 @@ export const playerApi = {
 
       return result;
     } catch (error) {
-      if (error instanceof DatabaseError || error instanceof NotFoundError)
-        throw error;
-      throw new DatabaseError(
+      if (error instanceof NotFoundError) throw error;
+      throw new RepositoryError(
         `Failed to complete mission for ${userId}`,
         error,
       );
     }
-  },
+  }
 
   async contributeResources(
     userId: string,
@@ -153,29 +159,46 @@ export const playerApi = {
       reputation: number;
     },
   ): Promise<void> {
-    await dbWrapper.players.update({ id: userId }, updates);
-  },
+    try {
+      await dbWrapper.players.update({ id: userId }, updates);
+
+      // Invalidate cache
+      gameCache.delete(CACHE_KEYS.PLAYER(userId));
+    } catch (error) {
+      throw new RepositoryError(
+        `Failed to contribute resources for ${userId}`,
+        error,
+      );
+    }
+  }
 
   async reset(userId: string): Promise<void> {
-    await dbWrapper.players.update(
-      { id: userId },
-      {
-        strength: 5,
-        stamina: 5,
-        coins: 10,
-        reputation: 0,
-        inventory: DEFAULT_INVENTORY,
-        skills: DEFAULT_SKILLS,
-        missionsCompleted: 0,
-        lastActionTimestamp: new Date(0),
-        currentMission: null,
-      },
-    );
-  },
-};
+    try {
+      await dbWrapper.players.update(
+        { id: userId },
+        {
+          strength: 5,
+          stamina: 5,
+          coins: 10,
+          reputation: 0,
+          inventory: DEFAULT_INVENTORY,
+          skills: DEFAULT_SKILLS,
+          missionsCompleted: 0,
+          lastActionTimestamp: new Date(0),
+          currentMission: null,
+        },
+      );
 
-// Town operations
-export const townApi = {
+      // Invalidate cache
+      gameCache.delete(CACHE_KEYS.PLAYER(userId));
+    } catch (error) {
+      throw new RepositoryError(`Failed to reset player ${userId}`, error);
+    }
+  }
+}
+
+// Database-backed town repository
+class DbTownRepository implements ITownRepository {
   async find(): Promise<Town | null> {
     try {
       // Check cache first
@@ -193,9 +216,9 @@ export const townApi = {
 
       return town;
     } catch (error) {
-      throw new DatabaseError("Failed to find town", error);
+      throw new RepositoryError("Failed to find town", error);
     }
-  },
+  }
 
   async findOrThrow(): Promise<Town> {
     const town = await this.find();
@@ -203,11 +226,11 @@ export const townApi = {
       throw new NotFoundError("Town", "default");
     }
     return town;
-  },
+  }
 
   async create(): Promise<Town> {
     try {
-      return await dbWrapper.towns.insert({
+      const town = await dbWrapper.towns.insert({
         id: "default-town",
         name: "Starscape Village",
         level: 1,
@@ -218,12 +241,19 @@ export const townApi = {
         slayCounts: {},
         unlockedTerritories: ["t1"],
       });
-    } catch (error) {
-      throw new DatabaseError("Failed to create town", error);
-    }
-  },
 
-  async update(townId: string, data: Partial<Town>): Promise<Town | null> {
+      // Cache the new town
+      if (town) {
+        gameCache.set(CACHE_KEYS.TOWN(), town, 60000);
+      }
+
+      return town;
+    } catch (error) {
+      throw new RepositoryError("Failed to create town", error);
+    }
+  }
+
+  async update(townId: string, data: TownUpdate): Promise<Town | null> {
     try {
       const result = await dbWrapper.towns.update({ id: townId }, data);
 
@@ -237,30 +267,27 @@ export const townApi = {
 
       return result;
     } catch (error) {
-      throw new DatabaseError(`Failed to update town ${townId}`, error);
+      throw new RepositoryError(`Failed to update town ${townId}`, error);
     }
-  },
+  }
 
   async updateTreasury(
     townId: string,
     treasury: Record<string, number>,
   ): Promise<void> {
-    await dbWrapper.towns.update({ id: townId }, { treasury });
-  },
+    await this.update(townId, { treasury });
+  }
 
   async updateSlayCounts(
     townId: string,
     slayCounts: Record<string, number>,
   ): Promise<void> {
-    await dbWrapper.towns.update({ id: townId }, { slayCounts });
-  },
+    await this.update(townId, { slayCounts });
+  }
 
   async unlockMissions(townId: string, missions: string[]): Promise<void> {
-    await dbWrapper.towns.update(
-      { id: townId },
-      { unlockedMissions: missions },
-    );
-  },
+    await this.update(townId, { unlockedMissions: missions });
+  }
 
   async completeObjective(
     townId: string,
@@ -270,47 +297,64 @@ export const townApi = {
       upgrades?: Record<string, boolean>;
     },
   ): Promise<void> {
-    await dbWrapper.towns.update({ id: townId }, updates);
-  },
+    await this.update(townId, updates);
+  }
 
   async reset(townId: string): Promise<void> {
-    await dbWrapper.towns.update(
-      { id: townId },
-      {
-        name: "Starscape Village",
-        level: 1,
-        treasury: {},
-        upgrades: DEFAULT_TOWN_UPGRADES,
-        unlockedMissions: [],
-        completedObjectives: [],
-        slayCounts: {},
-        unlockedTerritories: ["t1"],
-      },
-    );
-  },
-};
+    try {
+      await dbWrapper.towns.update(
+        { id: townId },
+        {
+          name: "Starscape Village",
+          level: 1,
+          treasury: {},
+          upgrades: DEFAULT_TOWN_UPGRADES,
+          unlockedMissions: [],
+          completedObjectives: [],
+          slayCounts: {},
+          unlockedTerritories: ["t1"],
+        },
+      );
 
-// Game log operations
-export const gameLogApi = {
+      // Invalidate cache
+      gameCache.delete(CACHE_KEYS.TOWN());
+    } catch (error) {
+      throw new RepositoryError(`Failed to reset town ${townId}`, error);
+    }
+  }
+}
+
+// Database-backed game log repository
+class DbGameLogRepository implements IGameLogRepository {
   async findMany(options: {
     playerId?: string;
     limit?: number;
   }): Promise<GameLog[]> {
-    // For player-specific logs, include both player and system logs
-    const where = options.playerId ? { playerId: options.playerId } : undefined;
-    return await dbWrapper.gameLogs.findMany({
-      where,
-      limit: options.limit || 30,
-    });
-  },
+    try {
+      // For player-specific logs, include both player and system logs
+      const where = options.playerId
+        ? { playerId: options.playerId }
+        : undefined;
+      return await dbWrapper.gameLogs.findMany({
+        where,
+        limit: options.limit || 30,
+      });
+    } catch (error) {
+      throw new RepositoryError("Failed to find game logs", error);
+    }
+  }
 
   async create(data: {
     playerId: string;
     message: string;
     type: string;
   }): Promise<GameLog> {
-    return await dbWrapper.gameLogs.insert(data);
-  },
+    try {
+      return await dbWrapper.gameLogs.insert(data);
+    } catch (error) {
+      throw new RepositoryError("Failed to create game log", error);
+    }
+  }
 
   async createMany(
     logs: Array<{
@@ -319,35 +363,58 @@ export const gameLogApi = {
       type: string;
     }>,
   ): Promise<GameLog[]> {
-    return await dbWrapper.gameLogs.insertMany(logs);
-  },
+    try {
+      return await dbWrapper.gameLogs.insertMany(logs);
+    } catch (error) {
+      throw new RepositoryError("Failed to create game logs", error);
+    }
+  }
 
   async deleteByPlayer(playerId: string): Promise<void> {
-    await dbWrapper.gameLogs.delete({ playerId });
-  },
-};
+    try {
+      await dbWrapper.gameLogs.delete({ playerId });
+    } catch (error) {
+      throw new RepositoryError(
+        `Failed to delete logs for player ${playerId}`,
+        error,
+      );
+    }
+  }
+}
 
-// Utility operations
-export const utilApi = {
+// Database-backed utility repository
+class DbUtilRepository implements IUtilRepository {
   async clearAll(): Promise<void> {
-    await dbWrapper.clearAll();
-  },
-};
+    try {
+      await dbWrapper.clearAll();
+    } catch (error) {
+      throw new RepositoryError("Failed to clear all data", error);
+    }
+  }
+}
 
-// Combined API export
-export const dbApi = {
-  player: playerApi,
-  town: townApi,
-  gameLog: gameLogApi,
-  util: utilApi,
-  batch: {
+// Main database repository implementation
+export class DbGameRepository implements IGameDataRepository {
+  public readonly player: IPlayerRepository;
+  public readonly town: ITownRepository;
+  public readonly gameLog: IGameLogRepository;
+  public readonly util: IUtilRepository;
+
+  constructor() {
+    this.player = new DbPlayerRepository();
+    this.town = new DbTownRepository();
+    this.gameLog = new DbGameLogRepository();
+    this.util = new DbUtilRepository();
+  }
+
+  batch = {
     async getGameState(userId: string): Promise<ApiResponse<GameState>> {
       try {
         // Execute all queries in parallel
         const [player, town, logs] = await Promise.all([
-          playerApi.findById(userId),
-          townApi.find(),
-          gameLogApi.findMany({ playerId: userId, limit: 30 }),
+          this.player.findById(userId),
+          this.town.find(),
+          this.gameLog.findMany({ playerId: userId, limit: 30 }),
         ]);
 
         return {
@@ -359,21 +426,21 @@ export const dbApi = {
         return {
           success: false,
           error:
-            error instanceof DatabaseError
+            error instanceof RepositoryError
               ? error.message
               : "Unknown database error",
         };
       }
     },
 
-    async initializeGame(userId: string): Promise<ApiResponse<GameState>> {
+    initializeGame: async (userId: string): Promise<ApiResponse<GameState>> => {
       try {
         // Check if player exists
-        let player = await playerApi.findById(userId);
+        let player = await this.player.findById(userId);
 
         if (!player) {
-          player = await playerApi.create(userId);
-          await gameLogApi.create({
+          player = await this.player.create(userId);
+          await this.gameLog.create({
             playerId: userId,
             message: "Welcome to Starscape! Your journey begins.",
             type: "system",
@@ -381,13 +448,16 @@ export const dbApi = {
         }
 
         // Check if town exists
-        let town = await townApi.find();
+        let town = await this.town.find();
         if (!town) {
-          town = await townApi.create();
+          town = await this.town.create();
         }
 
         // Get recent logs
-        const logs = await gameLogApi.findMany({ playerId: userId, limit: 30 });
+        const logs = await this.gameLog.findMany({
+          playerId: userId,
+          limit: 30,
+        });
 
         return {
           success: true,
@@ -398,11 +468,11 @@ export const dbApi = {
         return {
           success: false,
           error:
-            error instanceof DatabaseError
+            error instanceof RepositoryError
               ? error.message
               : "Failed to initialize game",
         };
       }
     },
-  },
-};
+  };
+}

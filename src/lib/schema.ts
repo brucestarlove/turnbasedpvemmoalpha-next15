@@ -127,9 +127,7 @@ export const players = pgTable(
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),
   },
-  (player) => ({
-    userIdIdx: index("player_user_id_idx").on(player.id),
-  }),
+  (player) => [index("player_user_id_idx").on(player.id)],
 );
 
 export const towns = pgTable("town", {
@@ -179,10 +177,10 @@ export const gameLogs = pgTable(
     type: text("type").default("action").notNull(), // action, town, system
     timestamp: timestamp("timestamp", { mode: "date" }).defaultNow().notNull(),
   },
-  (log) => ({
-    playerIdIdx: index("game_log_player_id_idx").on(log.playerId),
-    timestampIdx: index("game_log_timestamp_idx").on(log.timestamp),
-  }),
+  (log) => [
+    index("game_log_player_id_idx").on(log.playerId),
+    index("game_log_timestamp_idx").on(log.timestamp),
+  ],
 );
 
 export const chatRooms = pgTable("chatRoom", {

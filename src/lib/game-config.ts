@@ -73,7 +73,6 @@ export const ALL_MISSIONS_POOL: Record<string, Mission> = {
     type: "combat",
     category: "combat",
     enemy: "Rabid Wolf",
-    level: 1,
     skill: "unarmed",
     description: "A rabid wolf is menacing the area. Take it down.",
     requirements: {},
