@@ -455,10 +455,13 @@ export const ActionPanel = ({
                       <p className="mb-1 text-xs font-medium text-green-400">
                         Produces:
                       </p>
-                      <p className="text-xs text-blue-300">
-                        {recipe.result.amount}{" "}
-                        {recipe.result.item.replace(/_/g, " ")}
-                      </p>
+                      <div className="space-y-1">
+                        {Object.entries(recipe.result).map(([item, amount]) => (
+                          <p key={item} className="text-xs text-blue-300">
+                            {amount} {item.replace(/_/g, " ")}
+                          </p>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
