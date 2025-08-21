@@ -33,7 +33,8 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
     useState<ActivePane>("skills-missions");
   const [isResetting, setIsResetting] = useState(false);
 
-  const { playerData, townData, isLoading, error } = useGameState(userId);
+  const { playerData, townData, gameLogs, isLoading, error } =
+    useGameState(userId);
 
   const handleReset = async () => {
     if (
@@ -273,7 +274,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             />
 
             {/* Game Log */}
-            <GameLogPanel userId={userId} />
+            <GameLogPanel logs={gameLogs} isLoading={isLoading} />
           </div>
         </div>
       </div>

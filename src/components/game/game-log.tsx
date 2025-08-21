@@ -2,58 +2,46 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { getGameLogs } from "@/actions/game-actions";
 import { Icons } from "@/components/icons";
-import type { GameLog } from "@/lib/schema";
 
-type GameLogPanelProps = {
-  userId: string;
+type GameLogData = {
+  id: string;
+  playerId: string;
+  message: string;
+  type: string;
+  timestamp: Date;
 };
 
-export const GameLogPanel = ({ userId }: GameLogPanelProps) => {
-  const [logs, setLogs] = useState<GameLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+type GameLogPanelProps = {
+  logs: GameLogData[];
+  isLoading?: boolean;
+};
+
+export const GameLogPanel = ({
+  logs,
+  isLoading = false,
+}: GameLogPanelProps) => {
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevLogsLength = useRef(0);
 
   useEffect(() => {
-    const loadLogs = async () => {
-      try {
-        const result = await getGameLogs(userId, 50);
-        if (result.success) {
-          setLogs(result.data);
+    // Auto-scroll only if new logs were added and auto-scroll is enabled
+    if (
+      autoScroll &&
+      logs.length > prevLogsLength.current &&
+      scrollRef.current
+    ) {
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }, 100);
+    }
 
-          // Auto-scroll only if new logs were added and auto-scroll is enabled
-          if (
-            autoScroll &&
-            result.data.length > prevLogsLength.current &&
-            scrollRef.current
-          ) {
-            setTimeout(() => {
-              scrollRef.current?.scrollTo({
-                top: 0,
-                behavior: "smooth",
-              });
-            }, 100);
-          }
-
-          prevLogsLength.current = result.data.length;
-        }
-      } catch (error) {
-        console.error("Failed to load game logs:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadLogs();
-
-    // Refresh logs every 5 seconds
-    const interval = setInterval(loadLogs, 5000);
-
-    return () => clearInterval(interval);
-  }, [userId, autoScroll]);
+    prevLogsLength.current = logs.length;
+  }, [logs, autoScroll]);
 
   const handleScroll = () => {
     if (scrollRef.current) {

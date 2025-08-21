@@ -2,12 +2,21 @@
 
 import { useEffect, useState } from "react";
 
-import { getPlayerData, getTownData } from "@/actions/game-actions";
+import { getGameState } from "@/actions/game-actions";
 import type { Player, Town } from "@/lib/schema";
+
+type GameLogData = {
+  id: string;
+  playerId: string;
+  message: string;
+  type: string;
+  timestamp: Date;
+};
 
 export function useGameState(userId: string) {
   const [playerData, setPlayerData] = useState<Player | null>(null);
   const [townData, setTownData] = useState<Town | null>(null);
+  const [gameLogs, setGameLogs] = useState<GameLogData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,25 +28,19 @@ export function useGameState(userId: string) {
         setIsLoading(true);
         setError(null);
 
-        const [playerResult, townResult] = await Promise.all([
-          getPlayerData(userId),
-          getTownData(),
-        ]);
+        // Single batched call instead of multiple requests
+        const result = await getGameState(userId);
 
         if (!mounted) return;
 
-        if (!playerResult.success) {
-          setError(playerResult.error || "Failed to load player data");
+        if (!result.success) {
+          setError(result.error || "Failed to load game data");
           return;
         }
 
-        if (!townResult.success) {
-          setError(townResult.error || "Failed to load town data");
-          return;
-        }
-
-        setPlayerData(playerResult.data);
-        setTownData(townResult.data);
+        setPlayerData(result.data.player);
+        setTownData(result.data.town);
+        setGameLogs(result.data.logs);
       } catch (err) {
         if (!mounted) return;
         setError("Failed to load game data");
@@ -51,27 +54,23 @@ export function useGameState(userId: string) {
 
     loadGameData();
 
-    // Set up polling for real-time updates (every 5 seconds)
+    // Set up polling for real-time updates (every 10 seconds, reduced frequency)
     const interval = setInterval(async () => {
       if (!mounted) return;
 
       try {
-        const [playerResult, townResult] = await Promise.all([
-          getPlayerData(userId),
-          getTownData(),
-        ]);
+        // Single batched call for updates
+        const result = await getGameState(userId);
 
-        if (mounted && playerResult.success) {
-          setPlayerData(playerResult.data);
-        }
-
-        if (mounted && townResult.success) {
-          setTownData(townResult.data);
+        if (mounted && result.success) {
+          setPlayerData(result.data.player);
+          setTownData(result.data.town);
+          setGameLogs(result.data.logs);
         }
       } catch (err) {
         console.error("Error updating game data:", err);
       }
-    }, 5000);
+    }, 10000); // Increased from 5s to 10s
 
     return () => {
       mounted = false;
@@ -81,17 +80,13 @@ export function useGameState(userId: string) {
 
   const refreshData = async () => {
     try {
-      const [playerResult, townResult] = await Promise.all([
-        getPlayerData(userId),
-        getTownData(),
-      ]);
+      // Single batched call for manual refresh
+      const result = await getGameState(userId);
 
-      if (playerResult.success) {
-        setPlayerData(playerResult.data);
-      }
-
-      if (townResult.success) {
-        setTownData(townResult.data);
+      if (result.success) {
+        setPlayerData(result.data.player);
+        setTownData(result.data.town);
+        setGameLogs(result.data.logs);
       }
     } catch (err) {
       console.error("Error refreshing game data:", err);
@@ -101,6 +96,7 @@ export function useGameState(userId: string) {
   return {
     playerData,
     townData,
+    gameLogs,
     isLoading,
     error,
     refreshData,

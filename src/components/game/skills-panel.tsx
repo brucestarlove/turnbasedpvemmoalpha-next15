@@ -36,12 +36,21 @@ export const SkillsPanel = ({ playerData }: SkillsPanelProps) => {
     "combat",
     "gathering",
   ]);
+  const [expandedSkills, setExpandedSkills] = useState<string[]>([]);
 
   const toggleCategory = (category: string) => {
     setExpandedCategories((prev) =>
       prev.includes(category)
         ? prev.filter((c) => c !== category)
         : [...prev, category],
+    );
+  };
+
+  const toggleSkill = (skillName: string) => {
+    setExpandedSkills((prev) =>
+      prev.includes(skillName)
+        ? prev.filter((s) => s !== skillName)
+        : [...prev, skillName],
     );
   };
 
@@ -75,7 +84,7 @@ export const SkillsPanel = ({ playerData }: SkillsPanelProps) => {
             >
               <button
                 onClick={() => toggleCategory(categoryKey)}
-                className="hover:bg-background/50 flex w-full items-center justify-between p-3 transition-colors"
+                className="hover:bg-background/50 flex w-full cursor-pointer items-center justify-between p-3 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   {category.icon}
@@ -89,7 +98,7 @@ export const SkillsPanel = ({ playerData }: SkillsPanelProps) => {
               </button>
 
               {isExpanded && (
-                <div className="space-y-3 px-3 pb-3">
+                <div className="space-y-2 px-3 pb-3">
                   {category.skills.map((skillName) => {
                     const skillData = playerData.skills?.[skillName] || {
                       level: 1,
@@ -97,6 +106,7 @@ export const SkillsPanel = ({ playerData }: SkillsPanelProps) => {
                     };
                     const currentLevel = skillData.level;
                     const currentXp = skillData.xp;
+                    const isSkillExpanded = expandedSkills.includes(skillName);
 
                     // Calculate progress to next level
                     const nextLevelXp = currentLevel * 100;
@@ -104,25 +114,41 @@ export const SkillsPanel = ({ playerData }: SkillsPanelProps) => {
                       currentLevel >= 5 ? 100 : (currentXp / nextLevelXp) * 100;
 
                     return (
-                      <div key={skillName} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium capitalize">
-                            {skillName.replace(/_/g, " ")}
-                          </span>
-                          <span className="text-muted-foreground text-xs">
-                            Level {currentLevel}
-                          </span>
-                        </div>
+                      <div
+                        key={skillName}
+                        className="bg-background/20 rounded-lg border"
+                      >
+                        {/* Skill Header (clickable) */}
+                        <button
+                          onClick={() => toggleSkill(skillName)}
+                          className="hover:bg-background/30 flex w-full cursor-pointer items-center justify-between p-2 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium capitalize">
+                              {skillName.replace(/_/g, " ")}
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                              Level {currentLevel}
+                            </span>
+                          </div>
+                          <Icons.arrowLeft
+                            className={`h-3 w-3 transition-transform ${
+                              isSkillExpanded
+                                ? "rotate-[-90deg]"
+                                : "rotate-[180deg]"
+                            }`}
+                          />
+                        </button>
 
-                        {/* XP Progress Bar */}
-                        <div className="space-y-1">
-                          <div className="bg-muted/30 h-2 w-full rounded-full">
+                        {/* Always show XP progress bar */}
+                        <div className="px-2 pb-1">
+                          <div className="bg-muted/30 h-1.5 w-full rounded-full">
                             <div
-                              className="from-starlight to-cosmic h-2 rounded-full bg-gradient-to-r transition-all duration-300"
+                              className="from-starlight to-cosmic h-1.5 rounded-full bg-gradient-to-r transition-all duration-300"
                               style={{ width: `${progressPercent}%` }}
                             />
                           </div>
-                          <div className="text-muted-foreground flex justify-between text-xs">
+                          <div className="text-muted-foreground mt-0.5 flex justify-between text-xs">
                             <span>{currentXp} XP</span>
                             <span>
                               {currentLevel >= 5 ? "MAX" : `${nextLevelXp} XP`}
@@ -130,38 +156,45 @@ export const SkillsPanel = ({ playerData }: SkillsPanelProps) => {
                           </div>
                         </div>
 
-                        {/* Level Thresholds */}
-                        <div className="space-y-1">
-                          {LEVEL_THRESHOLDS.map((threshold) => {
-                            const isUnlocked = currentLevel >= threshold.level;
-                            const isCurrent = currentLevel === threshold.level;
+                        {/* Expandable Level Thresholds */}
+                        {isSkillExpanded && (
+                          <div className="space-y-1 px-2 pb-2">
+                            <div className="text-muted-foreground mb-1 text-xs font-medium">
+                              Level Progression:
+                            </div>
+                            {LEVEL_THRESHOLDS.map((threshold) => {
+                              const isUnlocked =
+                                currentLevel >= threshold.level;
+                              const isCurrent =
+                                currentLevel === threshold.level;
 
-                            return (
-                              <div
-                                key={threshold.level}
-                                className={`flex items-center gap-2 rounded p-1 text-xs ${
-                                  isCurrent
-                                    ? "bg-starlight/20 text-starlight"
-                                    : isUnlocked
-                                      ? "text-green-400"
-                                      : "text-muted-foreground"
-                                }`}
-                              >
+                              return (
                                 <div
-                                  className={`h-2 w-2 rounded-full ${
-                                    isUnlocked
-                                      ? "bg-green-400"
-                                      : "bg-muted-foreground/30"
+                                  key={threshold.level}
+                                  className={`flex items-center gap-2 rounded p-1 text-xs ${
+                                    isCurrent
+                                      ? "bg-starlight/20 text-starlight"
+                                      : isUnlocked
+                                        ? "text-green-400"
+                                        : "text-muted-foreground"
                                   }`}
-                                />
-                                <span>Level {threshold.level}:</span>
-                                <span className="italic">
-                                  {threshold.unlock}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
+                                >
+                                  <div
+                                    className={`h-1.5 w-1.5 rounded-full ${
+                                      isUnlocked
+                                        ? "bg-green-400"
+                                        : "bg-muted-foreground/30"
+                                    }`}
+                                  />
+                                  <span>Level {threshold.level}:</span>
+                                  <span className="italic">
+                                    {threshold.unlock}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

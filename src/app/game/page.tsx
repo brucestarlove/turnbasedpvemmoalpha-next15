@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { initializePlayer, initializeTown } from "@/actions/game-actions";
+import { initializeGame } from "@/actions/game-actions";
 import { GameLayout } from "@/components/game/game-layout";
 import { auth } from "@/lib/auth";
 
@@ -11,9 +11,8 @@ const GamePage = async () => {
     redirect("/");
   }
 
-  // Initialize player and town data for new users
-  await initializePlayer(session.user.id);
-  await initializeTown();
+  // Initialize game data (player, town, logs) in one batched call
+  await initializeGame(session.user.id);
 
   return (
     <div className="bg-background min-h-screen">

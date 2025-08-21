@@ -1,42 +1,49 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import { dbApi } from "@/lib/db-api";
 import {
   ALL_MISSIONS_POOL,
   COOLDOWN_MS,
-  DEFAULT_INVENTORY,
-  DEFAULT_SKILLS,
-  DEFAULT_TOWN_UPGRADES,
   getCurrentObjective,
-  TOWN_OBJECTIVES,
 } from "@/lib/game-config";
-import { db, gameLogs, players, towns } from "@/lib/schema";
+
+// Batched initialization - replaces individual init functions
+export async function initializeGame(userId: string) {
+  try {
+    const result = await dbApi.batch.initializeGame(userId);
+    if (result.success) {
+      revalidatePath("/game");
+    }
+    return result;
+  } catch (error) {
+    console.error("Failed to initialize game:", error);
+    return { success: false, error: "Failed to initialize game" };
+  }
+}
+
+// Batched game state fetch - reduces multiple GET requests
+export async function getGameState(userId: string) {
+  try {
+    const gameState = await dbApi.batch.getGameState(userId);
+    return { success: true, data: gameState };
+  } catch (error) {
+    console.error("Failed to get game state:", error);
+    return { success: false, error: "Failed to get game state" };
+  }
+}
 
 // Initialize player data for new users
 export async function initializePlayer(userId: string) {
   try {
-    const existingPlayer = await db.query.players.findFirst({
-      where: eq(players.id, userId),
-    });
+    const existingPlayer = await dbApi.player.findById(userId);
 
     if (!existingPlayer) {
-      await db.insert(players).values({
-        id: userId,
-        strength: 5,
-        stamina: 5,
-        coins: 10,
-        reputation: 0,
-        inventory: DEFAULT_INVENTORY,
-        skills: DEFAULT_SKILLS,
-        missionsCompleted: 0,
-        lastActionTimestamp: new Date(0),
-        currentMission: null,
-      });
+      await dbApi.player.create(userId);
 
       // Add welcome log entry
-      await db.insert(gameLogs).values({
+      await dbApi.gameLog.create({
         playerId: userId,
         message: "Welcome to Starscape! Your journey begins.",
         type: "system",
@@ -53,19 +60,10 @@ export async function initializePlayer(userId: string) {
 // Initialize town data
 export async function initializeTown() {
   try {
-    const existingTown = await db.query.towns.findFirst();
+    const existingTown = await dbApi.town.find();
 
     if (!existingTown) {
-      await db.insert(towns).values({
-        name: "Starscape Village",
-        level: 1,
-        treasury: {},
-        upgrades: DEFAULT_TOWN_UPGRADES,
-        unlockedMissions: [],
-        completedObjectives: [],
-        slayCounts: {},
-        unlockedTerritories: ["t1"],
-      });
+      await dbApi.town.create();
     }
 
     return { success: true };
@@ -78,9 +76,7 @@ export async function initializeTown() {
 // Get player data
 export async function getPlayerData(userId: string) {
   try {
-    const player = await db.query.players.findFirst({
-      where: eq(players.id, userId),
-    });
+    const player = await dbApi.player.findById(userId);
 
     if (!player) {
       return { success: false, error: "Player not found" };
@@ -96,7 +92,7 @@ export async function getPlayerData(userId: string) {
 // Get town data
 export async function getTownData() {
   try {
-    const town = await db.query.towns.findFirst();
+    const town = await dbApi.town.find();
 
     if (!town) {
       return { success: false, error: "Town not found" };
@@ -116,9 +112,7 @@ export async function startMission(
   combatSkill?: string,
 ) {
   try {
-    const player = await db.query.players.findFirst({
-      where: eq(players.id, userId),
-    });
+    const player = await dbApi.player.findById(userId);
 
     if (!player) {
       return { success: false, error: "Player not found" };
@@ -146,16 +140,10 @@ export async function startMission(
     }
 
     // Update player with new mission
-    await db
-      .update(players)
-      .set({
-        lastActionTimestamp: new Date(now),
-        currentMission: mission,
-      })
-      .where(eq(players.id, userId));
+    await dbApi.player.updateMission(userId, mission);
 
     // Add log entry
-    await db.insert(gameLogs).values({
+    await dbApi.gameLog.create({
       playerId: userId,
       message: `You have started: ${mission.name}.`,
       type: "action",
@@ -172,9 +160,7 @@ export async function startMission(
 // Resolve a mission (called when cooldown expires)
 export async function resolveMission(userId: string) {
   try {
-    const player = await db.query.players.findFirst({
-      where: eq(players.id, userId),
-    });
+    const player = await dbApi.player.findById(userId);
 
     if (!player || !player.currentMission) {
       return { success: false, error: "No active mission" };
@@ -233,9 +219,7 @@ export async function resolveMission(userId: string) {
     }
 
     // Update player data by reading current values and incrementing
-    const currentPlayer = await db.query.players.findFirst({
-      where: eq(players.id, userId),
-    });
+    const currentPlayer = await dbApi.player.findById(userId);
 
     if (!currentPlayer) {
       throw new Error("Player not found");
@@ -273,44 +257,34 @@ export async function resolveMission(userId: string) {
       ? (currentPlayer.missionsCompleted || 0) + 1
       : currentPlayer.missionsCompleted;
 
-    await db
-      .update(players)
-      .set({
-        currentMission: null,
-        coins: newCoins,
-        inventory: newInventory,
-        skills: newSkills,
-        missionsCompleted: newMissionsCompleted,
-      })
-      .where(eq(players.id, userId));
+    await dbApi.player.completeMission(userId, {
+      coins: newCoins,
+      inventory: newInventory,
+      skills: newSkills,
+      missionsCompleted: newMissionsCompleted,
+    });
 
     // Update town slay counts if this was a combat mission
     if (isSuccessfulAction && mission.type === "combat" && mission.enemy) {
-      const town = await db.query.towns.findFirst();
+      const town = await dbApi.town.find();
       if (town) {
         const newSlayCounts = { ...town.slayCounts };
         newSlayCounts[mission.enemy] = (newSlayCounts[mission.enemy] || 0) + 1;
 
-        await db
-          .update(towns)
-          .set({ slayCounts: newSlayCounts })
-          .where(eq(towns.id, town.id));
+        await dbApi.town.updateSlayCounts(town.id, newSlayCounts);
       }
     }
 
     // Unlock combat missions after first mission completion
     if (isSuccessfulAction && (currentPlayer.missionsCompleted || 0) === 0) {
-      const town = await db.query.towns.findFirst();
+      const town = await dbApi.town.find();
       if (town && !(town.unlockedMissions || []).includes("m103")) {
         const newUnlockedMissions = [...(town.unlockedMissions || []), "m103"];
 
-        await db
-          .update(towns)
-          .set({ unlockedMissions: newUnlockedMissions })
-          .where(eq(towns.id, town.id));
+        await dbApi.town.unlockMissions(town.id, newUnlockedMissions);
 
         // Add log entry
-        await db.insert(gameLogs).values({
+        await dbApi.gameLog.create({
           playerId: "system",
           message:
             "🐺 A dangerous wolf has been spotted nearby! The Combat Mission Board is now available.",
@@ -320,7 +294,7 @@ export async function resolveMission(userId: string) {
     }
 
     // Add log entry
-    await db.insert(gameLogs).values({
+    await dbApi.gameLog.create({
       playerId: userId,
       message: resultsText,
       type: "action",
@@ -350,9 +324,7 @@ export async function contributeToTown(
   amount: number,
 ) {
   try {
-    const player = await db.query.players.findFirst({
-      where: eq(players.id, userId),
-    });
+    const player = await dbApi.player.findById(userId);
 
     if (!player) {
       return { success: false, error: "Player not found" };
@@ -372,31 +344,23 @@ export async function contributeToTown(
     const newInventory = { ...currentInventory };
     newInventory[resourceName] = (newInventory[resourceName] || 0) - amount;
 
-    await db
-      .update(players)
-      .set({
-        inventory: newInventory,
-        coins: (player.coins || 0) + amount,
-        reputation: (player.reputation || 0) + repGain,
-      })
-      .where(eq(players.id, userId));
+    await dbApi.player.contributeResources(userId, {
+      inventory: newInventory,
+      coins: (player.coins || 0) + amount,
+      reputation: (player.reputation || 0) + repGain,
+    });
 
     // Update town treasury
-    const town = await db.query.towns.findFirst();
+    const town = await dbApi.town.find();
     if (town) {
       const newTreasury = { ...town.treasury };
       newTreasury[resourceName] = (newTreasury[resourceName] || 0) + amount;
 
-      await db
-        .update(towns)
-        .set({
-          treasury: newTreasury,
-        })
-        .where(eq(towns.id, town.id));
+      await dbApi.town.updateTreasury(town.id, newTreasury);
     }
 
     // Add log entry
-    await db.insert(gameLogs).values({
+    await dbApi.gameLog.create({
       playerId: userId,
       message: `You contributed ${amount} ${resourceName}, receiving ${amount} coins and ${repGain} reputation.`,
       type: "action",
@@ -416,11 +380,8 @@ export async function contributeToTown(
 // Get game logs for a player
 export async function getGameLogs(userId: string, limit = 30) {
   try {
-    const { or } = await import("drizzle-orm");
-
-    const logs = await db.query.gameLogs.findMany({
-      where: or(eq(gameLogs.playerId, userId), eq(gameLogs.playerId, "system")),
-      orderBy: (gameLogs, { desc }) => [desc(gameLogs.timestamp)],
+    const logs = await dbApi.gameLog.findMany({
+      playerId: userId,
       limit,
     });
 
@@ -436,44 +397,19 @@ export async function getGameLogs(userId: string, limit = 30) {
 export async function resetGameData(userId: string) {
   try {
     // Reset player data
-    await db
-      .update(players)
-      .set({
-        strength: 5,
-        stamina: 5,
-        coins: 10,
-        reputation: 0,
-        inventory: DEFAULT_INVENTORY,
-        skills: DEFAULT_SKILLS,
-        missionsCompleted: 0,
-        lastActionTimestamp: new Date(0),
-        currentMission: null,
-      })
-      .where(eq(players.id, userId));
+    await dbApi.player.reset(userId);
 
     // Reset town data
-    const town = await db.query.towns.findFirst();
+    const town = await dbApi.town.find();
     if (town) {
-      await db
-        .update(towns)
-        .set({
-          name: "Starscape Village",
-          level: 1,
-          treasury: {},
-          upgrades: DEFAULT_TOWN_UPGRADES,
-          unlockedMissions: [],
-          completedObjectives: [],
-          slayCounts: {},
-          unlockedTerritories: ["t1"],
-        })
-        .where(eq(towns.id, town.id));
+      await dbApi.town.reset(town.id);
     }
 
     // Clear game logs for this user
-    await db.delete(gameLogs).where(eq(gameLogs.playerId, userId));
+    await dbApi.gameLog.deleteByPlayer(userId);
 
     // Add welcome log entry
-    await db.insert(gameLogs).values({
+    await dbApi.gameLog.create({
       playerId: userId,
       message: "Game data reset! Welcome back to Starscape.",
       type: "system",
@@ -490,7 +426,7 @@ export async function resetGameData(userId: string) {
 // Check and complete town objectives
 export async function checkAndCompleteObjectives() {
   try {
-    const town = await db.query.towns.findFirst();
+    const town = await dbApi.town.find();
     if (!town) {
       return { success: false, error: "Town not found" };
     }
@@ -522,17 +458,13 @@ export async function checkAndCompleteObjectives() {
         ...completedObjectives,
         currentObjective.id,
       ];
-      const updates: any = {
+
+      // Prepare update data
+      const updateData: any = {
         completedObjectives: newCompletedObjectives,
       };
 
       // Apply unlocks
-      if (currentObjective.unlocks.upgrades) {
-        currentObjective.unlocks.upgrades.forEach((upgrade) => {
-          updates[`upgrades.${upgrade}`] = true;
-        });
-      }
-
       if (currentObjective.unlocks.missions) {
         const currentUnlockedMissions = town.unlockedMissions || [];
         const newUnlockedMissions = [
@@ -541,10 +473,18 @@ export async function checkAndCompleteObjectives() {
             (mission) => !currentUnlockedMissions.includes(mission),
           ),
         ];
-        updates.unlockedMissions = newUnlockedMissions;
+        updateData.unlockedMissions = newUnlockedMissions;
       }
 
-      await db.update(towns).set(updates).where(eq(towns.id, town.id));
+      if (currentObjective.unlocks.upgrades) {
+        const newUpgrades = { ...town.upgrades };
+        currentObjective.unlocks.upgrades.forEach((upgrade) => {
+          newUpgrades[upgrade] = true;
+        });
+        updateData.upgrades = newUpgrades;
+      }
+
+      await dbApi.town.completeObjective(town.id, updateData);
 
       // Add log entries about the completion
       const systemLogs = [
@@ -566,7 +506,7 @@ export async function checkAndCompleteObjectives() {
       }
 
       // Insert all log entries
-      await db.insert(gameLogs).values(systemLogs);
+      await dbApi.gameLog.createMany(systemLogs);
 
       revalidatePath("/game");
       return {

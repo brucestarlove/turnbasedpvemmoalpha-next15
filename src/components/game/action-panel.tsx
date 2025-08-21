@@ -160,7 +160,10 @@ export const ActionPanel = ({
 
                 <button
                   onClick={() => handleStartMission(mission.id!)}
-                  disabled={isStartingMission === mission.id}
+                  disabled={
+                    isStartingMission === mission.id ||
+                    !!playerData?.currentMission
+                  }
                   className={buttonVariants({
                     variant: "starlight",
                     size: "sm",
@@ -171,6 +174,11 @@ export const ActionPanel = ({
                     <div className="flex items-center gap-2">
                       <Icons.loading className="h-4 w-4 animate-spin" />
                       Starting...
+                    </div>
+                  ) : playerData?.currentMission ? (
+                    <div className="flex items-center gap-2">
+                      <Icons.clock className="h-4 w-4" />
+                      Mission Active
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
@@ -294,7 +302,10 @@ export const ActionPanel = ({
 
                 <button
                   onClick={() => handleStartMission(mission.id!, selectedSkill)}
-                  disabled={isStartingMission === mission.id}
+                  disabled={
+                    isStartingMission === mission.id ||
+                    !!playerData?.currentMission
+                  }
                   className={buttonVariants({
                     variant: "cosmic",
                     size: "sm",
@@ -305,6 +316,11 @@ export const ActionPanel = ({
                     <div className="flex items-center gap-2">
                       <Icons.loading className="h-4 w-4 animate-spin" />
                       Starting...
+                    </div>
+                  ) : playerData?.currentMission ? (
+                    <div className="flex items-center gap-2">
+                      <Icons.clock className="h-4 w-4" />
+                      Mission Active
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
@@ -438,7 +454,9 @@ export const ActionPanel = ({
                 <button
                   onClick={() => handleStartCrafting(recipe.id!)}
                   disabled={
-                    isStartingMission === recipe.id || !hasRequiredItems
+                    isStartingMission === recipe.id ||
+                    !!playerData?.currentMission ||
+                    !hasRequiredItems
                   }
                   className={buttonVariants({
                     variant: hasRequiredItems ? "glass" : "ghost",
@@ -450,6 +468,11 @@ export const ActionPanel = ({
                     <div className="flex items-center gap-2">
                       <Icons.loading className="h-4 w-4 animate-spin" />
                       Crafting...
+                    </div>
+                  ) : playerData?.currentMission ? (
+                    <div className="flex items-center gap-2">
+                      <Icons.clock className="h-4 w-4" />
+                      Mission Active
                     </div>
                   ) : !hasRequiredItems ? (
                     <div className="flex items-center gap-2">

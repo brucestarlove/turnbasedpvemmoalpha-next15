@@ -1,9 +1,14 @@
-import createMiddleware from "next-intl/middleware";
+import { auth } from "@/lib/auth";
 
-import { routing } from "./i18n/routing";
-
-export default createMiddleware(routing);
+export default auth((req) => {
+  // Only protect /game routes
+  if (req.nextUrl.pathname.startsWith("/game")) {
+    if (!req.auth) {
+      return Response.redirect(new URL("/", req.url));
+    }
+  }
+});
 
 export const config = {
-  matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
+  matcher: ["/game/:path*"],
 };
