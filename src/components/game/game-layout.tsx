@@ -33,7 +33,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
     useState<ActivePane>("skills-missions");
   const [isResetting, setIsResetting] = useState(false);
 
-  const { playerData, townData, gameLogs, isLoading, error } =
+  const { playerData, townData, gameLogs, isLoading, error, refreshData } =
     useGameState(userId);
 
   const handleReset = async () => {
@@ -94,7 +94,11 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
             Starscape
           </Link>
           <div className="flex items-center gap-2">
-            <CooldownTimer userId={userId} />
+            <CooldownTimer
+              userId={userId}
+              playerData={playerData}
+              onRefresh={refreshData}
+            />
             <button
               onClick={handleReset}
               disabled={isResetting}
@@ -260,6 +264,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
               townData={townData}
               playerData={playerData}
               userId={userId}
+              onRefresh={refreshData}
             />
           </div>
 
@@ -271,6 +276,7 @@ export const GameLayout = ({ userId }: GameLayoutProps) => {
               playerData={playerData}
               townData={townData}
               userId={userId}
+              onRefresh={refreshData}
             />
 
             {/* Game Log */}

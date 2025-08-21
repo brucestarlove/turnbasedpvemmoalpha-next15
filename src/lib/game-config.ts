@@ -107,7 +107,10 @@ export const TOWN_OBJECTIVES: TownObjective[] = [
     name: "Build Map & Notice Board",
     type: "contribution",
     requirements: { sturdy_wood: 2, stone: 2 },
-    unlocks: { upgrades: ["map_unlocked"] },
+    unlocks: {
+      upgrades: ["map_unlocked"],
+      missions: ["m103"],
+    },
   },
   {
     id: "clear_wolves",

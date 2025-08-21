@@ -12,9 +12,15 @@ type TownPanelProps = {
   townData: Town | null;
   playerData: Player | null;
   userId: string;
+  onRefresh?: () => Promise<void>;
 };
 
-export const TownPanel = ({ townData, playerData, userId }: TownPanelProps) => {
+export const TownPanel = ({
+  townData,
+  playerData,
+  userId,
+  onRefresh,
+}: TownPanelProps) => {
   const [resourceName, setResourceName] = useState("");
   const [resourceAmount, setResourceAmount] = useState("");
   const [isContributing, setIsContributing] = useState(false);
@@ -83,6 +89,10 @@ export const TownPanel = ({ townData, playerData, userId }: TownPanelProps) => {
         setResourceName("");
         setResourceAmount("");
         setError(null);
+        // Immediately refresh data after successful contribution
+        if (onRefresh) {
+          await onRefresh();
+        }
       } else {
         setError(result.error || "Failed to contribute");
       }

@@ -70,7 +70,7 @@ export function useGameState(userId: string) {
       } catch (err) {
         console.error("Error updating game data:", err);
       }
-    }, 10000); // Increased from 5s to 10s
+    }, 5000); // 5 second polling for mission completion updates
 
     return () => {
       mounted = false;

@@ -13,9 +13,6 @@ import {
 export async function initializeGame(userId: string) {
   try {
     const result = await dbApi.batch.initializeGame(userId);
-    if (result.success) {
-      revalidatePath("/game");
-    }
     return result;
   } catch (error) {
     console.error("Failed to initialize game:", error);

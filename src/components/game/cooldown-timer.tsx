@@ -2,15 +2,22 @@
 
 import { useEffect, useState } from "react";
 
-import { getPlayerData, resolveMission } from "@/actions/game-actions";
+import { resolveMission } from "@/actions/game-actions";
 import { Icons } from "@/components/icons";
 import { COOLDOWN_MS } from "@/lib/game-config";
+import type { Player } from "@/lib/schema";
 
 type CooldownTimerProps = {
   userId: string;
+  playerData: Player | null;
+  onRefresh?: () => Promise<void>;
 };
 
-export const CooldownTimer = ({ userId }: CooldownTimerProps) => {
+export const CooldownTimer = ({
+  userId,
+  playerData,
+  onRefresh,
+}: CooldownTimerProps) => {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isOnCooldown, setIsOnCooldown] = useState(false);
   const [currentMission, setCurrentMission] = useState<{
@@ -20,59 +27,65 @@ export const CooldownTimer = ({ userId }: CooldownTimerProps) => {
   const [isResolving, setIsResolving] = useState(false);
 
   useEffect(() => {
-    const checkCooldown = async () => {
-      try {
-        const result = await getPlayerData(userId);
-        if (result.success && result.data) {
-          const player = result.data;
-          const now = Date.now();
-          const lastAction = player.lastActionTimestamp?.getTime() || 0;
-          const timeSinceLastAction = now - lastAction;
+    if (!playerData) return;
 
-          if (player.currentMission) {
-            setCurrentMission(player.currentMission);
-            const endTime = lastAction + COOLDOWN_MS;
-            const remaining = Math.max(0, endTime - now);
+    const updateTimer = () => {
+      const now = Date.now();
+      const lastAction = playerData.lastActionTimestamp?.getTime() || 0;
+      const timeSinceLastAction = now - lastAction;
 
-            if (remaining <= 0 && !isResolving) {
-              // Mission is complete, resolve it
-              setIsResolving(true);
-              try {
-                await resolveMission(userId);
-                setCurrentMission(null);
-                setIsOnCooldown(false);
-                setTimeRemaining(0);
-              } catch (error) {
-                console.error("Failed to resolve mission:", error);
-              } finally {
-                setIsResolving(false);
+      if (playerData.currentMission) {
+        setCurrentMission(playerData.currentMission);
+        const endTime = lastAction + COOLDOWN_MS;
+        const remaining = Math.max(0, endTime - now);
+
+        if (remaining <= 0 && !isResolving) {
+          // Mission is complete, resolve it
+          setIsResolving(true);
+          resolveMission(userId)
+            .then(() => {
+              setCurrentMission(null);
+              setIsOnCooldown(false);
+              setTimeRemaining(0);
+              // Refresh game state after mission resolution
+              if (onRefresh) {
+                onRefresh();
               }
-            } else {
-              setIsOnCooldown(true);
-              setTimeRemaining(remaining);
-            }
-          } else if (timeSinceLastAction < COOLDOWN_MS) {
-            setCurrentMission(null);
-            setIsOnCooldown(true);
-            setTimeRemaining(COOLDOWN_MS - timeSinceLastAction);
-          } else {
-            setCurrentMission(null);
-            setIsOnCooldown(false);
-            setTimeRemaining(0);
-          }
+            })
+            .catch((error) => {
+              console.error("Failed to resolve mission:", error);
+            })
+            .finally(() => {
+              setIsResolving(false);
+            });
+        } else {
+          setIsOnCooldown(true);
+          setTimeRemaining(remaining);
         }
-      } catch (error) {
-        console.error("Error checking cooldown:", error);
+      } else if (timeSinceLastAction < COOLDOWN_MS) {
+        setCurrentMission(null);
+        setIsOnCooldown(true);
+        setTimeRemaining(COOLDOWN_MS - timeSinceLastAction);
+      } else {
+        setCurrentMission(null);
+        setIsOnCooldown(false);
+        setTimeRemaining(0);
       }
     };
 
-    checkCooldown();
-    const interval: NodeJS.Timeout = setInterval(checkCooldown, 1000);
+    // Update immediately
+    updateTimer();
+
+    // Only set up interval if there's actually a cooldown/mission running
+    let interval: NodeJS.Timeout | null = null;
+    if (isOnCooldown || playerData.currentMission) {
+      interval = setInterval(updateTimer, 1000);
+    }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [userId, isResolving]);
+  }, [userId, playerData, isResolving, isOnCooldown, onRefresh]);
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);

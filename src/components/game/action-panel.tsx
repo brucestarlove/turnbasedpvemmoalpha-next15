@@ -16,6 +16,7 @@ type ActionPanelProps = {
   playerData: Player | null;
   townData: Town | null;
   userId: string;
+  onRefresh?: () => Promise<void>;
 };
 
 export const ActionPanel = ({
@@ -23,6 +24,7 @@ export const ActionPanel = ({
   playerData,
   townData,
   userId,
+  onRefresh,
 }: ActionPanelProps) => {
   const [isStartingMission, setIsStartingMission] = useState<string | null>(
     null,
@@ -44,6 +46,11 @@ export const ActionPanel = ({
       const result = await startMission(userId, missionId, combatSkill);
       if (!result.success) {
         setError(result.error || "Failed to start mission");
+      } else {
+        // Immediately refresh data after successful mission start
+        if (onRefresh) {
+          await onRefresh();
+        }
       }
     } catch (error) {
       console.error("Failed to start mission:", error);
@@ -60,6 +67,11 @@ export const ActionPanel = ({
       const result = await startMission(userId, recipeId);
       if (!result.success) {
         setError(result.error || "Failed to start crafting");
+      } else {
+        // Immediately refresh data after successful crafting start
+        if (onRefresh) {
+          await onRefresh();
+        }
       }
     } catch (error) {
       console.error("Failed to start crafting:", error);
