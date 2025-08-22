@@ -1,6 +1,6 @@
 # a goofy attempt of vibecoding an app in Gemini and trying to import it into a Nextjs structure without proper game architecture
 
-random journey. learned some things along the way.
+random journey. the idea is to have a game server which is accessed through different UI across different pages of a site. learned some things along the way.
 
 <p align="center">
   <a href="#-features"><strong>Features</strong></a> ·
